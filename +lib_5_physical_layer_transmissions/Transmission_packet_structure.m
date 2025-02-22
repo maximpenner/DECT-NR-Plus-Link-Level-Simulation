@@ -9,8 +9,8 @@ function [N_PACKET_symb] = Transmission_packet_structure(numerology, PacketLengt
             error('PacketLengthType is %d, but it must be 0 or 1.', PacketLengthType);
     end
 
-    % minimum length to accomodate two DRS symbols per transmit stream
-    if N_eff_TX >= 4 && N_PACKET_symb < 15
+    % minimum length to accommodate two DRS symbols per transmit stream
+    if N_eff_TX == 4 && N_PACKET_symb < 15
         error('For N_eff_TX == 4 at least 15 symbols are required, see 5.1 Transmission packet structure.');
     end
 
