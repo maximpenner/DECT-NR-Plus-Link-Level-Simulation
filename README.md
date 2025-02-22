@@ -20,10 +20,8 @@ The Matlab LTE Toolbox is required for channel coding, the Parallel Computing To
 - **main_BER_PER_over_MCS_plot_PDC.m**: Plot results of **main_BER_PER_over_MCS.m** for PDC.
 
 ## ToDo
-- [x] incorporate latest changes from 2024-03
-- [x] adapt synchronization parameters to new STF cover sequence
+- [ ] incorporate latest changes from 2024-10
 - [ ] implement basic MIMO algorithms for N<sub>SS</sub> > 1
-- [x] add phase error gradient correction resulting from fractional/residual STO and SCO
 
 ## Exemplary Simulation Results
 
