@@ -30,9 +30,10 @@ function plot_single_file(filefolder, filename)
     
     json_struct = lib_review.lib_helper.json_load(ffn);
 
-    nof_antennas = json_struct.nof_antennas;
+    nof_antennas_limited = json_struct.nof_antennas_limited;
   
     waveform_power = json_struct.waveform_power;
+    waveform_rms = json_struct.waveform_rms;
     waveform_metric = json_struct.waveform_metric;
     waveform_metric_smooth = json_struct.waveform_metric_smooth;
     waveform_metric_max_idx = json_struct.waveform_metric_max_idx;
@@ -40,9 +41,9 @@ function plot_single_file(filefolder, filename)
     metric_smoother_bos_offset_to_center_samples = json_struct.metric_smoother_bos_offset_to_center_samples;
 
     % revert concatenation
-    waveform_power = reshape(waveform_power, [], nof_antennas);
-    waveform_metric = reshape(waveform_metric, [], nof_antennas);
-    waveform_metric_smooth = reshape(waveform_metric_smooth, [], nof_antennas);
+    waveform_power = reshape(waveform_power, [], nof_antennas_limited);
+    waveform_metric = reshape(waveform_metric, [], nof_antennas_limited);
+    waveform_metric_smooth = reshape(waveform_metric_smooth, [], nof_antennas_limited);
 
     figure(1)
     clf();
@@ -51,38 +52,30 @@ function plot_single_file(filefolder, filename)
 
     time_axis = 1:1:n_elem_per_antenna;
 
-    for i=1:nof_antennas
+    for i=1:nof_antennas_limited
 
         % C++ starts indexing at 0
-        metric_idx_max_matlab_cpp_equivalent = waveform_metric_max_idx(i) + 1;
-
-        % find index of local maximum
-        [~, metric_idx_max_matlab] = max(waveform_metric(:,i));
-        [~, metric_smooth_idx_max_matlab] = max(waveform_metric_smooth(:,i));
-
-        %assert(metric_idx_max_matlab_cpp_equivalent == metric_idx_max_matlab);
+        waveform_metric_max_idx_matlab_equivalent = waveform_metric_max_idx(i) + 1;
 
         % plot power
-        subplot(nof_antennas, 2, (i-1)*2 + 1);
-        plot(time_axis, waveform_power(:,i))
+        subplot(nof_antennas_limited, 2, (i-1)*2 + 1);
+        plot(time_axis, waveform_rms(:,i))
         hold on
-        xline(metric_idx_max_matlab_cpp_equivalent);
-        xline(metric_smooth_idx_max_matlab, 'r');
+        xline(waveform_metric_max_idx_matlab_equivalent);
         grid on
         xlim([-5 n_elem_per_antenna+5]);
-        %ylim([-0.01 0.01]);
 
         % plot metric
-        subplot(nof_antennas, 2, (i-1)*2 + 2);
+        subplot(nof_antennas_limited, 2, (i-1)*2 + 2);
         plot(time_axis, waveform_metric(:,i))
         hold on
-        plot(time_axis, waveform_metric_smooth(:,i), 'k')
-        xline(metric_idx_max_matlab_cpp_equivalent);
-        xline(metric_smooth_idx_max_matlab, 'r');
-        xline(metric_idx_max_matlab, 'g');
+        xline(waveform_metric_max_idx_matlab_equivalent);
         grid on
         xlim([-5 n_elem_per_antenna+5]);
         ylim([-0.5 1.5]);
+
+        % plot smoothed metric
+        plot(time_axis, waveform_metric_smooth(:,i), 'k')
     end
 
     1;
