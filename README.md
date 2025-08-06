@@ -1,31 +1,43 @@
 # DECT-2020 New Radio Link-Level Simulation Environment
-This program contains a Matlab link-level simulation environment for the ETSI standard DECT-2020 New Radio (NR) (ETSI TS 103 636-1), also marketed as DECT NR+.
 
-[DECT Introduction](https://www.etsi.org/technologies/dect)
+This repository contains a Matlab link-level simulation environment for DECT NR+ ([ETSI TS 103 636, Part 1 to 5](https://www.etsi.org/committee/1394-dect)) with the following features:
 
-The standard consists of multiple parts which can be found on the DECT Technical Committee (TC) webpage.
+- **Transmitter**: complete physical layer, i.e. all bandwidths, MIMO modes, channel coding etc.
+- **Receiver**: core physical layer functionality, i.e. packet detection, STO and CFO correction, channel estimation, channel decoding, MRC, transmit diversity etc.
+- **Channel**: doubly-selective tapped delay line (TDL) model
 
-[DECT committee page](https://www.etsi.org/committee/1394-dect)
+DECT NR+ is a non-cellular radio standard and part of [5G as defined by ITU-R](https://www.etsi.org/newsroom/press-releases/1988-2021-10-world-s-first-non-cellular-5g-technology-etsi-dect-2020-gets-itu-r-approval-setting-example-of-new-era-connectivity). Introductions are available at [ETSI](https://www.etsi.org/technologies/dect), [DECT Forum](https://www.dect.org/nrplus) and [Wikipedia](https://en.wikipedia.org/wiki/DECT-2020). While commonly referred to as DECT NR+, the standard's official designation is DECT-2020 New Radio (NR).
 
-## Capabilities
-The complete physical layer of a DECT-2020 NR transmitter is implemented. This includes all bandwidths, MIMO modes, channel coding etc. Additionally, BERs and PERs can be simulated in different wireless channel models, in particular doubly-selective channels. For the receiver, STO and CFO synchronization as well as most MIMO modes have been implemented.
+## Table of Contents
 
-## Requirements
-The Matlab LTE Toolbox is required for channel coding, the Parallel Computing Toolbox for reducing simulation time and the Communications Toolbox for wireless channel simulation.
+1. [Software Requirements](#software-requirements)
+2. [Main Scripts](#capabilities)
+3. [Exemplary Simulation Results](#exemplary-simulation-results)
+    1. [Packet Error Rates](#packet-error-rates)
+    2. [Resource Mapping](#resource-mapping)
+    3. [Channel Interpolation](#channel-interpolation)
+4. [Known Issues](#known-issues)
+5. [Future Work](#future-work)
+
+Advanced Topics
+
+1. [Performance References](#performance-references)
+2. [Synchronization](#synchronization)
+
+## Software Requirements
+
+The Matlab LTE Toolbox is required for channel coding, the Communications Toolbox for wireless channel simulation, and the Parallel Computing Toolbox for reducing simulation time.
 
 ## Main Scripts
+
 - **main_single_packet.m**: Simple example demonstrating how to use the simulation environment.
 - **main_BER_PER_over_MCS.m**: Parallel simulation of bit and packet error rates over MCS.
 - **main_BER_PER_over_MCS_plot_PCC.m**: Plot results of **main_BER_PER_over_MCS.m** for PCC.
 - **main_BER_PER_over_MCS_plot_PDC.m**: Plot results of **main_BER_PER_over_MCS.m** for PDC.
 
-## ToDo
-- [ ] incorporate latest changes from 2024-10
-- [ ] implement basic MIMO algorithms for N<sub>SS</sub> > 1
-
 ## Exemplary Simulation Results
 
-### Packet Error Rates (PERs)
+### Packet Error Rates
 PERs of a SIMO (two receive antennas) system for different MCS over SNR in a Rician fading channel.
 <p align="center">
   <img src="./pics/PER_over_SNR.jpg" width="700">
@@ -43,9 +55,23 @@ Interpolated average path gains for a doubly selective channel.
   <img src="./pics/Channel_Interpolation.jpg" width="700">
 </p>
 
-## Implementation Details
+## Known Issues
+- The channel coding requires verification. It is based on Matlab's LTE Toolbox.
+- Maximum code block size $Z=2048$ and channel coding with a limited number of soft bits is not implemented yet.
 
-### Synchronization
+## Future Work
+- [ ] fractional STO estimation based DRS
+- [ ] residual STO estimation based on STF and DRS
+- [ ] residual CFO estimation based on STF
+- [ ] implement basic MIMO algorithms for N<sub>SS</sub> > 1
+
+## Performance References
+
+For simple channel models such as AWGN and Rayleigh flat-fading, there are closed-form BER expressions that can be used as lower BER performance bounds. Matlab's [bertool](https://de.mathworks.com/help/comm/ref/biterrorrateanalysis-app.html) can provide such theoretical BER curves. Lower bound means that the simulated/measured BER of a DECT NR+ system at a given SNR cannot fall below this lower bound. In fact, the BER tends to be worse, as a receiver must estimate and correct STO, CFO, the channel etc. which usually results in a loss of performance. If more complex channel models such as Rayleigh with frequency- and time-selective fading are simulated, this typically leads to an additional loss of performance. A total SNR loss in dB in the lower single-digit range is common.
+
+For the PER of the Turbo decoder, exact closed-form expressions are not available. Instead, [simulated PER curves over the SNR](https://arxiv.org/abs/2104.08549) can be used. PER curves (also referred to as BLER in channel coding literature) are typically provided for the AWGN channel. This allows the performance of different implementations to be compared and serves as a lower PER performance bound.
+
+## Synchronization
 
 DECT NR+ packet synchronization is based on the Synchronization Training Field (STF). In this repository, synchronization is [multi-stage](https://ieeexplore.ieee.org/document/4717982). In the first stage, it consists of packet detection and a coarse peak search based on an autocorrelation of the received signal. The autocorrelation exploits that the STF consists of several regular patterns. The position of the coarse peak is also used for a correction of the fractional and integer Carrier Frequency Offset (CFO). The second stage is a fine peak search based on a cross-correlation with the STF whose shape is known to the receiver. The fine search range is limited to a small area to the left and right of the coarse peak.
 

@@ -168,8 +168,9 @@ classdef dect_rx < handle
             %% remove fractional + residual STO based on STF and DRS
             % Idea: Delay in time domain leads to increasing phase rotation within an OFDM symbol, but steady across packet.
             % This is known as the phase error gradient (PEG).
-            % Residual STO may also be due to a Symbol Clock Offset (CFO).
-            % ToDo: add DRS, currently based only on STF
+            % Residual STO may also be due to a Symbol Clock Offset (SCO).
+            % ToDo: add DRS to fractional STO estimation (optional, increases latency in a real receiver)
+            % ToDo: residual STO based on STF and DRS
             if synchronization.post_FFT.sto_fractional == true
                 [antenna_streams_mapped_rev, sto_fractional] = lib_rx.sync_STO_fractional(antenna_streams_mapped_rev, physical_resource_mapping_STF_cell, N_RX, oversampling);
 
@@ -184,7 +185,7 @@ classdef dect_rx < handle
             % Idea: CFO leads to steady phase rotation within an OFDM symbol, but increasing phase rotation across packet.
             % This is known as the common phase error (CPE).
             % Is a real receiver, a CPU can also be caused by phase noise.
-            % ToDo: add STF, currently based only on DRS
+            % ToDo: add STF to residual CFO estimation
             if synchronization.post_FFT.cfo_residual == true
                 antenna_streams_mapped_rev = lib_rx.sync_CFO_residual(  antenna_streams_mapped_rev,...
                                                                         physical_resource_mapping_DRS_cell,...
@@ -199,7 +200,7 @@ classdef dect_rx < handle
             % With STF and DRS known, we can now estimate the channel for PCC, which lies at the beginning of each packet.
             % PCC is always transmitted with transmit diversity coding.
             % For now it is done down below together with the PDC.
-            % TODO
+            % ToDo
                                                                                                                     
             %% channel estimation
             % Now that we know the length of the packet from the PCC, we can determine a channel estimate.
