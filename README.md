@@ -87,4 +87,6 @@ Fine Metric with Cover Sequence | Fine Metric without Cover Sequence
 :--------------------------------:|:-----------------------------------:
 ![](./pics/Sync_Metric_Fine.jpg)  |  ![](./pics/Sync_Metric_Fine_old.jpg)
 
-Thanks to the cover sequence, only one fine peak without significant secondary peaks remains. Without the cover sequence, the already large secondary peaks can easily exceed the main peak if the CFO is large, even at high SNR. But to be able to correct the CFO beforehand, the position of the STF must be known, which requires a prior search for the coarse peak. The shape of the coarse metric is not affected by a CFO.
+Thanks to the cover sequence, only a single fine peak remains without significant secondary peaks. Without the cover sequence, there are significant secondary peaks that can exceed the main peak at low SNR or high CFO. For this reason, in this repository, the CFO is first corrected at the coarse peak before the cross-correlation is applied. The shape of the coarse metric is not affected by a CFO.
+
+If the entire synchronization consists only of a cross-correlation, the cross-correlation must be as short as possible (e.g. two patterns of the STF) so that the CFO does not have a significant impact on the fine peak. At the same time, the cross-correlation must not be too short, otherwise the peak will not be distinct enough at low SNR.  
