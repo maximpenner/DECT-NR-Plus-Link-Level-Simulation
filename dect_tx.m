@@ -17,7 +17,7 @@ classdef dect_tx < handle
             obj.packet_data = [];
         end
         
-        % We pass the bits for the PDC and OFDM samples for each antenna are returned.
+        % We pass the bits for the PCC and PDC, and OFDM samples for each antenna are returned.
         % This function basically does all the things described in chapter 7, based on the generic procedures of chapter 6.
         function [samples_antenna_tx] = generate_packet(obj, PCC_user_bits, PDC_user_bits)
             

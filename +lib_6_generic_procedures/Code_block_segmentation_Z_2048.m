@@ -2,7 +2,7 @@ function [c_r] = Code_block_segmentation_Z_2048(b)
 
     % source: https://github.com/robmaunder/turbo-3gpp-matlab
     
-    % according to 5.3 filler bits are unncessary
+    % according to 5.3 filler bits are unnecessary
     
     B = numel(b);
 

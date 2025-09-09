@@ -8,7 +8,7 @@ function [samples_antenna_sto_cfo, STO_CFO_report] = sync_STF(  verbose,...
                                                                 sto_config,...
                                                                 cfo_config)
 
-    %% precalculation of parameters that are known at the receiver a-priori
+    %% precalculate parameters known at the receiver a-priori
 
     % packet size
     [n_samples_ch, N_RX] = size(samples_antenna);
@@ -80,7 +80,7 @@ function [samples_antenna_sto_cfo, STO_CFO_report] = sync_STF(  verbose,...
     req_start = coarse_threshold_crossing_idx + 1;
     req_end = req_start + sto_config.coarse_peak.search_length + sto_config.fine.search_area + n_samples_STF_os;
 
-    % if we overreach, set index to 1 which will very likely to an erroneous packet (if the STO is suffiently large)
+    % if we overreach, set index to 1 which will very likely to an erroneous packet (if the STO is sufficiently large)
     if req_end > n_samples_ch
         req_start = 1;
         req_end = req_start + sto_config.coarse_peak.search_length + sto_config.fine.search_area + n_samples_STF_os;
@@ -230,7 +230,7 @@ function [samples_antenna_sto_cfo, STO_CFO_report] = sync_STF(  verbose,...
         integer_cfo_report = 0;
     end
 
-    %% perform crosscorrelation with STF templates for N_eff_TX and fine synchonization pointer determination
+    %% perform crosscorrelation with STF templates for N_eff_TX and fine synchronization pointer determination
 
     % we have a coarse sync point, we have also determined the fractional + integer CFO
 

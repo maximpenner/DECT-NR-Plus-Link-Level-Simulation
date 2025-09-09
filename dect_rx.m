@@ -82,7 +82,6 @@ classdef dect_rx < handle
 
             verbose_            = obj.verbose;
             tx_handle_          = obj.tx_handle;
-            ch_handle_          = obj.ch_handle;
             STF_templates_      = obj.STF_templates;
             harq_buf_40_        = obj.harq_buf_40;
             harq_buf_80_        = obj.harq_buf_80;
@@ -125,6 +124,28 @@ classdef dect_rx < handle
 
             %% sync of integer STO and fractional + integer CFO in time domain before FFT, and extraction of N_eff_TX into STO_CFO_report
             if synchronization.pre_FFT.active == true
+
+                % The property snr_db of the RF channel refers to the in-band noise.
+                % If oversampling is used, we have to remove out-of-band noise, otherwise synchronization in time domain is impaired.
+                if oversampling > 1
+                    % Kaiser LPF
+                    lowpassfilter = designfilt( 'lowpassfir', ...
+                                                'PassbandFrequency', 0.6 / oversampling, ...
+                                                'StopbandFrequency',0.8 / oversampling, ...
+                                                'PassbandRipple', 10, ...
+                                                'StopbandAttenuation', 30, ...
+                                                'SampleRate', 1, ...
+                                                'DesignMethod', 'kaiserwin', ...
+                                                'MinOrder', 'even');
+                    
+                    assert(mod(numel(lowpassfilter.Coefficients), 2) == 1, 'fractional LPF delay');
+                    
+                    samples_antenna_rx = filter(lowpassfilter, samples_antenna_rx);
+                    
+                    % compensate deterministic filter delay prior to synchronization
+                    lowpassfilter_delay = (numel(lowpassfilter.Coefficients)-1)/2;
+                    samples_antenna_rx(1:end-lowpassfilter_delay) = samples_antenna_rx(lowpassfilter_delay+1:end);
+                end
 
                 % The number of samples received is larger than the number of samples in a packet.
                 % In this function, we try to synchronize the packet and extract the exact number of samples in the packet, which we assume to be known.
