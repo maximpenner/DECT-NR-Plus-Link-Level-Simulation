@@ -160,13 +160,13 @@ classdef dect_tx < handle
                                                                                   
             % debugging
             if verbose_ > 0
-                lib_dbg.check_power_t_f_domain(antenna_streams_mapped, n_spectrum_occupied, samples_antenna_tx, n_STF_samples);
+                lib_util.check_power_t_f_domain(antenna_streams_mapped, n_spectrum_occupied, samples_antenna_tx, n_STF_samples);
             end
             
             % debugging
             if verbose_ > 1
-                lib_dbg.plot_resource_mapping_before_antenna(antenna_streams_mapped);
-                lib_dbg.plot_STF(samples_antenna_tx, u, N_b_DFT, oversampling);
+                lib_util.plot_resource_mapping_before_antenna(antenna_streams_mapped);
+                lib_util.plot_STF(samples_antenna_tx, u, N_b_DFT, oversampling);
             end
         end
     end

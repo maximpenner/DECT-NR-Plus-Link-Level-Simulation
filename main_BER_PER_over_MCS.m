@@ -22,8 +22,6 @@ end
 
 fprintf('Starting at %s\n', datestr(now,'HH:MM:SS'));
 
-%profile on
-
 % choose mcs to simulate and maximum number of harq retransmissions
 mcs_index_vec = [1,2,3,4];      % part 3, Table A-1
 max_harq_retransmissions = 0;
@@ -162,9 +160,6 @@ end
 
 % save all variables
 save('results/var_all.mat');
-
-%profile viewer
-%profile off
 
 function [result] = simulate_packets(txx, rxx, snr_dB, n_packets_per_snr, max_harq_retransmissions)
 

@@ -338,7 +338,7 @@ classdef dect_rx < handle
                 fprintf('Measured sto_fractional: %f samples\n', obj.packet_data.STO_CFO_report.sto_fractional);
 
                 if verbose_ > 1
-                    lib_dbg.plot_chestim(ch_estim, obj.phy_4_5.numerology.n_guards_bottom, obj.phy_4_5.numerology.n_guards_top);
+                    lib_util.plot_chestim(ch_estim, obj.phy_4_5.numerology.n_guards_bottom, obj.phy_4_5.numerology.n_guards_top);
                     scatterplot(x_PDC_rev);                    
                 end
             end
