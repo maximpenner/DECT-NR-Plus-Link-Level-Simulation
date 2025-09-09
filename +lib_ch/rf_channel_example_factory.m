@@ -5,7 +5,7 @@ function [ch] = rf_channel_example_factory(type, verbose, tx, rx, n_samples_ante
     N_RX = rx.mac_meta.N_RX;
 
     % RF channel parameters (see +lib_rf_channel/rf_channel.m) valid for all channel types.
-    ch                      = lib_rf_channel.rf_channel();
+    ch                      = lib_ch.rf_channel();
     ch.verbose              = verbose;
     ch.verbose_cp           = tx.phy_4_5.numerology.N_b_CP*tx.mac_meta.oversampling;
     ch.type                 = type;

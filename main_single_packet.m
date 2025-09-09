@@ -92,7 +92,7 @@ rx = dect_rx(verbose, mac_meta_rx);
 %% create channel, can be replaced with a custom channel
 
 % type can be awgn, rayleigh or rician
-ch = lib_rf_channel.rf_channel_example_factory('rayleigh', verbose, tx, rx, size(samples_antenna_tx, 1));
+ch = lib_ch.rf_channel_example_factory('rayleigh', verbose, tx, rx, size(samples_antenna_tx, 1));
 
 %% give rx handles so it can debug, e.g. perfect channel knowledge
 rx.tx_handle = tx;

@@ -877,7 +877,7 @@ classdef rf_channel < handle
                 
                 % each rx receives all 'distorted' tx
                 for i=1:1:obj.N_TX
-                    samples_antenna_rx = samples_antenna_rx + lib_rf_channel.err_phase_cfo_sto(samples_antenna_tx(:,i), obj.a_err_phase, obj.a_cfo, obj.a_sto);
+                    samples_antenna_rx = samples_antenna_rx + lib_ch.err_phase_cfo_sto(samples_antenna_tx(:,i), obj.a_err_phase, obj.a_cfo, obj.a_sto);
                 end
                 samples_antenna_rx = repmat(samples_antenna_rx, 1, obj.N_RX);
                 

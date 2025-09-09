@@ -181,7 +181,7 @@ function [result] = simulate_packets(txx, rxx, snr_dB, n_packets_per_snr, max_ha
     N_RX = rxx.mac_meta.N_RX;
 
     % create channel
-    ch                      = lib_rf_channel.rf_channel();
+    ch                      = lib_ch.rf_channel();
     ch.verbose              = 0;
     ch.verbose_cp           = txx.phy_4_5.numerology.N_b_CP*txx.mac_meta.oversampling;
     ch.type                 = 'rician';
