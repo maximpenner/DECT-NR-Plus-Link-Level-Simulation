@@ -3,4 +3,3 @@ function [T_frame, N_FRAME_slot, T_slot] = frame_structure()
     N_FRAME_slot = 24;
     T_slot = T_frame/N_FRAME_slot;
 end
-

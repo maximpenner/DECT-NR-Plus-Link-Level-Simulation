@@ -37,4 +37,3 @@ function [transmit_streams] = subcarrier_mapping_DRS(transmit_streams, physical_
         transmit_streams(i) = {some_transmit_stream};
     end
 end
-

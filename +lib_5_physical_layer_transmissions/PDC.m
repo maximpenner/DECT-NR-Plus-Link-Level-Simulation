@@ -7,9 +7,9 @@
 %       physical_resource_mapping_PDC_cell(1,2)
 %       physical_resource_mapping_PDC_cell(1,3)
 %       ...
-%       physical_resource_mapping_PDC_cell(1,x-2) contain subcarrier indices for all ofdm symbols where the PDC is placed
+%       physical_resource_mapping_PDC_cell(1,x-2) contain subcarrier indices for all OFDM symbols where the PDC is placed
 %
-%       physical_resource_mapping_PDC_cell(1,x-1) contains the corresponding ofdm symbol indices
+%       physical_resource_mapping_PDC_cell(1,x-1) contains the corresponding OFDM symbol indices
 %
 %       physical_resource_mapping_PDC_cell(1,x) contains linear indices for fast demapping
 %
@@ -24,10 +24,15 @@
 %            {56×1 double}    {56×1 double}    {56×1 double}    {42×1 double}    {56×1 double}    {56×1 double}    {1×6 double}    {322×1 double}
 %
 %
-function [physical_resource_mapping_PDC_cell, N_PDC_re] = PDC(u, numerology, k_b_OCC, N_PACKET_symb, N_TS, N_eff_TX,...
-                                                                physical_resource_mapping_STF_cell,...
-                                                                physical_resource_mapping_DRS_cell,...
-                                                                physical_resource_mapping_PCC_cell)
+function [physical_resource_mapping_PDC_cell, N_PDC_re] = PDC(u, ...
+                                                              numerology, ...
+                                                              k_b_OCC, ...
+                                                              N_PACKET_symb, ...
+                                                              N_TS, ...
+                                                              N_eff_TX, ...
+                                                              physical_resource_mapping_STF_cell, ...
+                                                              physical_resource_mapping_DRS_cell, ...
+                                                              physical_resource_mapping_PCC_cell)
 
     % Technical Specification assumes first index is 0, matlab 1
     MATLAB_INDEX_SHIFT = 1;
@@ -36,11 +41,14 @@ function [physical_resource_mapping_PDC_cell, N_PDC_re] = PDC(u, numerology, k_b
     N_b_DFT = numerology.N_b_DFT;
     N_b_OCC = numerology.N_b_OCC;
 
-    [~, mat_STF_DRS_PCC_all_streams] = lib_util.matrix_STF_DRS_PCC_PDC(N_b_DFT, N_PACKET_symb, N_TS, [],...
-                                                                        physical_resource_mapping_STF_cell,...
-                                                                        physical_resource_mapping_DRS_cell,...
-                                                                        physical_resource_mapping_PCC_cell,...
-                                                                        []);
+    [~, mat_STF_DRS_PCC_all_streams] = lib_util.matrix_STF_DRS_PCC_PDC(N_b_DFT, ...
+                                                                       N_PACKET_symb, ...
+                                                                       N_TS, ...
+                                                                       [], ...
+                                                                       physical_resource_mapping_STF_cell, ...
+                                                                       physical_resource_mapping_DRS_cell, ...
+                                                                       physical_resource_mapping_PCC_cell, ...
+                                                                       []);
 
     %% 5.2.5
     
@@ -68,10 +76,7 @@ function [physical_resource_mapping_PDC_cell, N_PDC_re] = PDC(u, numerology, k_b
     % this is an error in the standard
     if N_step == 10 && mod(N_PACKET_symb, 10) ~= 0
         
-        % sanity check
-        if mod(N_PACKET_symb, 5) ~= 0
-            error("N_PACKET_symb not a multiple of 5 or 10.");
-        end
+        assert(mod(N_PACKET_symb, 5) == 0);
         
         nof_OFDM_symbols_carying_DRS = nof_OFDM_symbols_carying_DRS + 1;
     end
@@ -90,22 +95,22 @@ function [physical_resource_mapping_PDC_cell, N_PDC_re] = PDC(u, numerology, k_b
     %   PDC in mapped into subcarriers which are not used in transmit streams by DRS or PCC in spatial stream 0
     %
     %   number of rows: always 1
-    %   first cell:     subcarrier indices for one ofdm symbol
-    %   second cell:    subcarrier indices for one ofdm symbol
-    %   third cell:     subcarrier indices for one ofdm symbol
+    %   first cell:     subcarrier indices for one OFDM symbol
+    %   second cell:    subcarrier indices for one OFDM symbol
+    %   third cell:     subcarrier indices for one OFDM symbol
     %   ...
-    %   last cell:      indices of all aforementioned ofdm symbols (see ofdm_symbol_indices)
+    %   last cell:      indices of all aforementioned OFDM symbols (see OFDM_symbol_indices)
     %    
     physical_resource_mapping_PDC_cell = cell(0);
-    ofdm_symbol_indices = [];
+    OFDM_symbol_indices = [];
     
-    % first ofdm symbol at index 0 is STF, so we have to start at index 1
+    % first OFDM symbol at index 0 is STF, so we have to start at index 1
     l = 1;
     
     % counter for found PDC subcarriers
     N_PDC_re_cnt = 0;
     
-    % loop over each ofdm sybol in Data Field (DF)
+    % loop over each OFDM sybol in Data Field (DF)
     for q = 1:1:N_DF_symb
         
         % find all indices of unused subcarriers in current OFDM-symbol
@@ -117,7 +122,7 @@ function [physical_resource_mapping_PDC_cell, N_PDC_re] = PDC(u, numerology, k_b
         % remove any subcarriers not within k_b_OCC, namely guards and DC
         k_i = intersect(k_i, k_b_OCC);
         
-        % no free subcarriers in this symbol, move to next ofdm symbol
+        % no free subcarriers in this symbol, move to next OFDM symbol
         if numel(k_i)== 0
             l = l + 1;
             continue;
@@ -126,14 +131,14 @@ function [physical_resource_mapping_PDC_cell, N_PDC_re] = PDC(u, numerology, k_b
         % sort from lowest subcarrier to highest
         k_i = sort(k_i);
 
-        % append subcarriers for this ofdm symbol
+        % append subcarriers for this OFDM symbol
         physical_resource_mapping_PDC_cell = [physical_resource_mapping_PDC_cell {k_i}];
         N_PDC_re_cnt = N_PDC_re_cnt + numel(k_i);
                 
-        % remember current ofdm symbol
-        ofdm_symbol_indices = [ofdm_symbol_indices, l];
+        % remember current OFDM symbol
+        OFDM_symbol_indices = [OFDM_symbol_indices, l];
 
-        % move to next of ofdm symbol
+        % move to next of OFDM symbol
         l = l + 1;
     end   
 
@@ -142,14 +147,14 @@ function [physical_resource_mapping_PDC_cell, N_PDC_re] = PDC(u, numerology, k_b
     %% create a vector with linear indices
     linear_indices_matlab = zeros(N_PDC_re_cnt, 1);
     idx = 1;
-    for i=1:1:numel(ofdm_symbol_indices)
+    for i=1:1:numel(OFDM_symbol_indices)
         
         k_i = cell2mat(physical_resource_mapping_PDC_cell(i));
         n_k_i = numel(k_i);
         
         % linear indices
         rows = lib_util.index_conversion_TS_matlab(N_b_DFT,k_i);
-        cols = repmat(ofdm_symbol_indices(i) + MATLAB_INDEX_SHIFT, numel(k_i), 1);
+        cols = repmat(OFDM_symbol_indices(i) + MATLAB_INDEX_SHIFT, numel(k_i), 1);
         li_matlab = sub2ind([N_b_DFT N_PACKET_symb], rows, cols);
         
         linear_indices_matlab(idx : idx + n_k_i - 1) = li_matlab;
@@ -160,6 +165,5 @@ function [physical_resource_mapping_PDC_cell, N_PDC_re] = PDC(u, numerology, k_b
     assert(idx-1 == N_PDC_re_cnt, "incorrect number of linear indices");
     
     %% write result
-    physical_resource_mapping_PDC_cell = [physical_resource_mapping_PDC_cell {ofdm_symbol_indices} {linear_indices_matlab}];
+    physical_resource_mapping_PDC_cell = [physical_resource_mapping_PDC_cell {OFDM_symbol_indices} {linear_indices_matlab}];
 end
-

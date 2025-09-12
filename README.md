@@ -60,9 +60,8 @@ Interpolated average path gains for a doubly selective channel.
 - Maximum code block size $Z=2048$ and channel coding with a limited number of soft bits is not implemented yet.
 
 ## Future Work
-- [ ] fractional STO estimation based DRS
 - [ ] residual STO estimation based on STF and DRS
-- [ ] residual CFO estimation based on STF
+- [ ] residual CFO estimation based on STF and DRS
 - [ ] implement basic MIMO algorithms for N<sub>SS</sub> > 1
 
 ## Performance References

@@ -2,11 +2,9 @@ function [b, segErr] = Code_block_desegmentation_Z_2048(c_r, B)
 
     % source: https://github.com/robmaunder/turbo-3gpp-matlab
     
-    % according to 5.3 filler bits are unncessary
+    % according to 5.3 filler bits are unnecessary
 
-    if B <= 0
-        error('Unsupported block length');
-    end
+    assert(B > 0, 'Unsupported block length');
 
     supported_values_of_K = [40:8:511,512:16:1023,1024:32:2047,2048:64:6144];
 
@@ -46,10 +44,7 @@ function [b, segErr] = Code_block_desegmentation_Z_2048(c_r, B)
 
     F = C_plus*K_plus + C_minus*K_minus - B_prime;
     
-    % sanity check
-    if F ~= 0
-        error('We should need no Filler bits, but we need %d.', F);
-    end
+    assert(F == 0);
 
     b = zeros(1,B);
     segErr = [];
@@ -66,10 +61,7 @@ function [b, segErr] = Code_block_desegmentation_Z_2048(c_r, B)
         if C>1
             a_r = c_r{r+1}(1:K_r(r+1)-L);
             
-            % sanity check
-            if sum(isnan(a_r)) > 0
-                error('There are NANs in a_r.');
-            end
+            assert(sum(isnan(a_r)) == 0);
             
             a_r(isnan(a_r)) = 0;
 
@@ -96,7 +88,5 @@ function [b, segErr] = Code_block_desegmentation_Z_2048(c_r, B)
     
     % convert b to correct format
     b = b';
-    b = int8(b);
-    
+    b = int8(b);    
 end
-

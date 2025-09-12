@@ -1,90 +1,74 @@
-classdef dect_rx < handle
+classdef rx_t < matlab.mixin.Copyable
     
     properties
-        verbose;        % show data during execution: 0 false, 1 only text, 2 text + plots
-        config_tx;      % data received from MAC layer
+        tx_config;      % data received from MAC layer
         phy_4_5;        % data from chapter 4 and 5
-
         packet_data;    % intermediate results during packet decoding
 
-        config_rx;      % additional configuration of the receiver
+        rx_config;      % additional configuration of the receiver
 
-        STF_templates;  % for synchronization based on STF, both time and frequency domain
-        harq_buf_40;    % these are the cbsbuffers used by matlab for harq operation, PCC 40 bits
-        harq_buf_80;    % these are the cbsbuffers used by matlab for harq operation, PCC 80 bits
-        harq_buf;       % these are the cbsbuffers used by matlab for harq operation, PDC
+        HARQ_buf_40;    % PCC 40 bits
+        HARQ_buf_80;    % PCC 80 bits
+        HARQ_buf;       % PDC
         
-        wiener;         % structure with data about wiener filter for channel estimation, depends on channel environment
+        wiener;         % wiener filter for channel estimation, depends on channel environment
     end
     
     methods
-        function obj = dect_rx(verbose_arg, config_tx_arg, config_rx_arg)
-            % if channel estimation type is not specifically defined, use Wiener as a default
-            if ~isfield(config_tx_arg, 'active_ch_estim_type')
-                config_tx_arg.active_ch_estim_type = 'wiener';
-            end
+        function obj = rx_t(tx, rx_config)
+            assert(isa(tx, "tx_t"));
+            assert(isa(rx_config, "rx_config_t"));
 
-            % if equalization/detection is not specifically turned off, activate if by default
-            if ~isfield(config_tx_arg, 'active_equalization_detection')
-                config_tx_arg.active_equalization_detection = true;
-            end
-
-            obj.verbose = verbose_arg;
-            obj.config_tx = config_tx_arg;
-            obj.phy_4_5 = lib_util.run_chapter_4_5(verbose_arg, config_tx_arg);
-
+            % create copies
+            obj.tx_config = tx.tx_config;
+            obj.phy_4_5 = tx.phy_4_5;
             obj.packet_data = [];
 
-            obj.config_rx = config_rx_arg;
+            obj.rx_config = rx_config;
 
-            % we only load STF templates if they are needed
-            if config_tx_arg.synchronization.pre_FFT.active == true
-                obj.STF_templates = lib_rx.sync_STF_template(config_tx_arg);
-            end
-
-            obj.harq_buf_40 = [];
-            obj.harq_buf_80 = [];
-            obj.harq_buf = [];
+            obj.clear_harq_buffers();
             
-            % init wiener coefficients with reasonable default values
-            obj.overwrite_wiener(1/10^(30/10), ...  % 30dB SNR
-                                 20, ...            % 20Hz Doppler
-                                 363e-9);           % 363ns delay spread
+            obj.set_wiener(obj.rx_config.channel_estimation_config.noise_estim, ...
+                           obj.rx_config.channel_estimation_config.f_d_hertz, ...
+                           obj.rx_config.channel_estimation_config.tau_rms_sec);
+        end
+
+        function [] = clear_harq_buffers(obj)
+            obj.HARQ_buf_40 = [];
+            obj.HARQ_buf_80 = [];
+            obj.HARQ_buf = [];
         end
 
         % Wiener filter interpolates between DRS pilots. Optimal interpolation depends on channel properties.
         % We use a static filter which is used regardless of the instantaneous channel.
         % For noise, the best case value is assumed, for delay and Doppler spread the worst case value.
         % To improve performance, different sets should be precalculated for different SNRs.
-        function [] = overwrite_wiener(obj, noise_estim, f_d_hertz, tau_rms_sec)
-            % We estimate the channel for each subcarrier based on the closest DRS pilots in time and frequency.
-            % This value defines how many of the closest DRS pilots we consider. Ideally, this value should depend on the SNR. 
-            N_closest_DRS_pilots = 8;
-
-            obj.wiener = lib_rx.channel_estimation_wiener_weights(  obj.phy_4_5.physical_resource_mapping_DRS_cell,...
-                                                                    N_closest_DRS_pilots,...
-                                                                    obj.phy_4_5.numerology.N_b_DFT,...
-                                                                    obj.phy_4_5.N_PACKET_symb,...
-                                                                    obj.phy_4_5.numerology.N_b_CP, ...
-                                                                    obj.phy_4_5.numerology.B_u_b_DFT,...
-                                                                    noise_estim, ...
-                                                                    f_d_hertz, ...
-                                                                    tau_rms_sec);
+        function [] = set_wiener(obj, noise_estim, f_d_hertz, tau_rms_sec)
+            obj.wiener = lib_rx.channel_estimation_wiener_weights(obj.phy_4_5.physical_resource_mapping_DRS_cell, ...
+                                                                  obj.rx_config.channel_estimation_config.N_closest_DRS_pilots, ...
+                                                                  obj.phy_4_5.numerology.N_b_DFT, ...
+                                                                  obj.phy_4_5.N_PACKET_symb, ...
+                                                                  obj.phy_4_5.numerology.N_b_CP, ...
+                                                                  obj.phy_4_5.numerology.B_u_b_DFT, ...
+                                                                  noise_estim, ...
+                                                                  f_d_hertz, ...
+                                                                  tau_rms_sec);
         end
         
         % We pass on the samples as they are received at the antennas and we try to extract the PCC and PDC bits.
         % It gets more complicated when using HARQ as calls to this function depend on each other.
-        function [PCC_user_bits, PDC_user_bits] = demod_decode_packet(obj, samples_antenna_rx)
+        % The handle to tx is required to determine the SINR
+        function [plcf_bits_recovered, tb_bits_recovered] = demod_decode_packet(obj, samples_antenna_rx)
+            %% for the purpose of readability, extract all variables that are necessary at this stage
 
-            % for the purpose of readability, extract all variables that are necessary at this stage
+            verbosity           = obj.tx_config.verbosity;
 
-            verbose_            = obj.verbose;
-            tx_handle_          = obj.tx_handle;
-            STF_templates_      = obj.STF_templates;
-            harq_buf_40_        = obj.harq_buf_40;
-            harq_buf_80_        = obj.harq_buf_80;
-            harq_buf_           = obj.harq_buf;
+            HARQ_buf_40_        = obj.HARQ_buf_40;
+            HARQ_buf_80_        = obj.HARQ_buf_80;
+            HARQ_buf_           = obj.HARQ_buf;
             wiener_             = obj.wiener;
+
+            stf_templates       = obj.rx_config.stf_templates;
         
             mode_0_to_11        = obj.phy_4_5.tm_mode.mode_0_to_11;
             N_eff_TX            = obj.phy_4_5.tm_mode.N_eff_TX;
@@ -100,117 +84,108 @@ classdef dect_rx < handle
 
             n_packet_samples    = obj.phy_4_5.n_packet_samples;
 
-            b                   = obj.config_tx.b;
-            u                   = obj.config_tx.u;
-            Z                   = obj.config_tx.Z;
-            network_id          = obj.config_tx.network_id;
-            PLCF_type           = obj.config_tx.PLCF_type;
-            rv                  = obj.config_tx.rv;
-            N_RX                = obj.config_tx.N_RX;
-            oversampling        = obj.config_tx.oversampling;
+            u                   = obj.tx_config.u;
+            b                   = obj.tx_config.b;
+            Z                   = obj.tx_config.Z;
+            network_id          = obj.tx_config.network_id;
+            PLCF_type           = obj.tx_config.PLCF_type;
+            rv                  = obj.tx_config.rv;
+            N_RX                = obj.rx_config.N_RX;
+            oversampling        = obj.tx_config.oversampling;
 
-            synchronization     = obj.config_tx.synchronization;
+            pre_fft_config      = obj.rx_config.pre_fft_config;
 
-            active_ch_estim_type = obj.config_tx.active_ch_estim_type;
-
-            active_equalization_detection = obj.config_tx.active_equalization_detection;
+            equalization_detection_config = obj.rx_config.equalization_detection_config;
 
             physical_resource_mapping_PCC_cell = obj.phy_4_5.physical_resource_mapping_PCC_cell;
             physical_resource_mapping_PDC_cell = obj.phy_4_5.physical_resource_mapping_PDC_cell;
             physical_resource_mapping_STF_cell = obj.phy_4_5.physical_resource_mapping_STF_cell;
             physical_resource_mapping_DRS_cell = obj.phy_4_5.physical_resource_mapping_DRS_cell;
 
-            %% sync of integer STO and fractional + integer CFO in time domain before FFT, and extraction of N_eff_TX into STO_CFO_report
-            if synchronization.pre_FFT.active == true
+            %% synchronization before the FFT based on the STF
+            if ~isempty(pre_fft_config)
 
-                % The property snr_db of the RF channel refers to the in-band noise.
-                % If oversampling is used, we have to remove out-of-band noise, otherwise synchronization in time domain is impaired.
+                assert(size(samples_antenna_rx, 1) > obj.phy_4_5.n_packet_samples*oversampling, ...
+                       "for synchonization more samples than the packet size must be provided");
+
+                % If oversampling is used, we have to remove out-of-band noise.
+                % Otherwise synchronization in time domain is impaired.
                 if oversampling > 1
-                    % Kaiser LPF
-                    lowpassfilter = designfilt( 'lowpassfir', ...
-                                                'PassbandFrequency', 0.6 / oversampling, ...
-                                                'StopbandFrequency',0.8 / oversampling, ...
-                                                'PassbandRipple', 10, ...
-                                                'StopbandAttenuation', 30, ...
-                                                'SampleRate', 1, ...
-                                                'DesignMethod', 'kaiserwin', ...
-                                                'MinOrder', 'even');
-                    
-                    assert(mod(numel(lowpassfilter.Coefficients), 2) == 1, 'fractional LPF delay');
-                    
-                    samples_antenna_rx = filter(lowpassfilter, samples_antenna_rx);
-                    
-                    % compensate deterministic filter delay prior to synchronization
-                    lowpassfilter_delay = (numel(lowpassfilter.Coefficients)-1)/2;
-                    samples_antenna_rx(1:end-lowpassfilter_delay) = samples_antenna_rx(lowpassfilter_delay+1:end);
+                    samples_antenna_rx = lib_rx.lib_pre_fft.lpf(samples_antenna_rx, oversampling);
                 end
 
                 % The number of samples received is larger than the number of samples in a packet.
-                % In this function, we try to synchronize the packet and extract the exact number of samples in the packet, which we assume to be known.
-                % In a real receiver, the number of samples is unknown. We would first have to decode the PCC which lies in the first few OFDM symbols and extract that information.
-                [samples_antenna_rx_sto_cfo, STO_CFO_report] = lib_rx.sync_STF( verbose_,...
-                                                                                u,...
-                                                                                N_b_DFT,...
-                                                                                samples_antenna_rx,...
-                                                                                STF_templates_,...
-                                                                                n_packet_samples,...
-                                                                                oversampling,...
-                                                                                synchronization.pre_FFT.sto_config,...
-                                                                                synchronization.pre_FFT.cfo_config);
+                % We try to synchronize the packet and extract the exact number of samples in the packet, which we assume to be known.
+                % In a real receiver, the number of samples is unknown.
+                % We would first have to decode the PCC which lies in the first few OFDM symbols and extract that information.
+                [samples_antenna_rx_sto_cfo, sync_report] = lib_rx.lib_pre_fft.sync(verbosity, ...
+                                                                                    pre_fft_config, ...
+                                                                                    u, ...
+                                                                                    N_b_DFT, ...
+                                                                                    samples_antenna_rx, ...
+                                                                                    stf_templates, ...
+                                                                                    n_packet_samples, ...
+                                                                                    oversampling);
 
-                obj.packet_data.STO_CFO_report = STO_CFO_report;
+                obj.packet_data.sync_report = sync_report;
             else
+                assert(size(samples_antenna_rx, 1) == obj.phy_4_5.n_packet_samples*oversampling, ...
+                       "without synchonization the same number of samples as the packet contains must be provided");
+
                 % assume the input samples are synchronized and have the correct length
                 samples_antenna_rx_sto_cfo = samples_antenna_rx;
 
-                % add empty report
-                obj.packet_data.STO_CFO_report = [];
+                obj.packet_data.sync_report = [];
             end
 
             %% revert cover sequence by reapplying it
-            samples_antenna_rx_sto_cfo = lib_6_generic_procedures.STF_signal_cover_sequence(samples_antenna_rx_sto_cfo, u, b*oversampling);
+            samples_antenna_rx_sto_cfo = lib_6_generic_procedures.STF_signal_cover_sequence(samples_antenna_rx_sto_cfo, ...
+                                                                                            u, ...
+                                                                                            b*oversampling);
 
             %% OFDM demodulation a.k.a FFT
             % Switch back to frequency domain.
             % We use one version with subcarriers from oversampling removed and one with them still occupied.
             % The second version might be necessary if we have a very large, uncorrected integer CFO.
-            [antenna_streams_mapped_rev, ~]= lib_6_generic_procedures.ofdm_signal_generation_Cyclic_prefix_insertion_rev(   samples_antenna_rx_sto_cfo,...
-                                                                                                                            k_b_OCC,...
-                                                                                                                            N_PACKET_symb,...
-                                                                                                                            N_RX,...
-                                                                                                                            N_eff_TX,...
-                                                                                                                            N_b_DFT,...
-                                                                                                                            u,...
-                                                                                                                            N_b_CP,...
-                                                                                                                            oversampling);
+            [antenna_streams_mapped_rev, ~]= lib_6_generic_procedures.ofdm_signal_generation_Cyclic_prefix_insertion_rev(samples_antenna_rx_sto_cfo, ...
+                                                                                                                         k_b_OCC, ...
+                                                                                                                         N_PACKET_symb, ...
+                                                                                                                         N_RX, ...
+                                                                                                                         N_eff_TX, ...
+                                                                                                                         N_b_DFT, ...
+                                                                                                                         u, ...
+                                                                                                                         N_b_CP, ...
+                                                                                                                         oversampling);
 
             %% remove fractional + residual STO based on STF and DRS
-            % Idea: Delay in time domain leads to increasing phase rotation within an OFDM symbol, but steady across packet.
+            % Idea: A delay in time domain leads to increasing phase rotation within an OFDM symbol, but steady across the packet.
             % This is known as the phase error gradient (PEG).
-            % Residual STO may also be due to a Symbol Clock Offset (SCO).
-            % ToDo: add DRS to fractional STO estimation (optional, increases latency in a real receiver)
-            % ToDo: residual STO based on STF and DRS
-            if synchronization.post_FFT.sto_fractional == true
-                [antenna_streams_mapped_rev, sto_fractional] = lib_rx.sync_STO_fractional(antenna_streams_mapped_rev, physical_resource_mapping_STF_cell, N_RX, oversampling);
+            % A residual STO may also be due to a Symbol Clock Offset (SCO).
+            % ToDo: residual STO based on STF plus DRS
+            if ~isempty(obj.rx_config.post_fft_sto_fractional_config)
+                [antenna_streams_mapped_rev, sto_fractional] = lib_rx.sto_fractional(antenna_streams_mapped_rev, ...
+                                                                                     physical_resource_mapping_STF_cell, ...
+                                                                                     N_RX, ...
+                                                                                     oversampling);
 
                 % add to report
-                obj.packet_data.STO_CFO_report.sto_fractional = sto_fractional;
+                obj.packet_data.residual_report.sto_fractional = sto_fractional;
             else
                 % add empty
-                obj.packet_data.STO_CFO_report.sto_fractional = 0;
+                obj.packet_data.residual_report.sto_fractional = 0;
             end
 
             %% remove residual CFO correction based on STF and DRS
-            % Idea: CFO leads to steady phase rotation within an OFDM symbol, but increasing phase rotation across packet.
+            % Idea: A CFO leads to steady phase rotation within an OFDM symbol, but increasing phase rotation across the packet.
             % This is known as the common phase error (CPE).
-            % Is a real receiver, a CPU can also be caused by phase noise.
-            % ToDo: add STF to residual CFO estimation
-            if synchronization.post_FFT.cfo_residual == true
-                antenna_streams_mapped_rev = lib_rx.sync_CFO_residual(  antenna_streams_mapped_rev,...
-                                                                        physical_resource_mapping_DRS_cell,...
-                                                                        physical_resource_mapping_STF_cell,...
-                                                                        N_RX,...
-                                                                        N_eff_TX);
+            % Is a real receiver, a CFO can also be caused by phase noise.
+            % ToDo: residual CFO based on STF plus DRS
+            if ~isempty(obj.rx_config.post_FFT_cfo_residual_config)
+                antenna_streams_mapped_rev = lib_rx.cfo_residual(antenna_streams_mapped_rev, ...
+                                                                 physical_resource_mapping_DRS_cell, ...
+                                                                 physical_resource_mapping_STF_cell, ...
+                                                                 N_RX, ...
+                                                                 N_eff_TX);
             end
 
             %% PCC decoding and packet data extraction
@@ -219,34 +194,22 @@ classdef dect_rx < handle
             % With STF and DRS known, we can now estimate the channel for PCC, which lies at the beginning of each packet.
             % PCC is always transmitted with transmit diversity coding.
             % For now it is done down below together with the PDC.
-            % ToDo
                                                                                                                     
             %% channel estimation
             % Now that we know the length of the packet from the PCC, we can determine a channel estimate.
             % Output is a cell(N_RX,1), each cell with a matrix of size N_b_DFT x N_PACKET_symb x N_TX.
             % For subcarriers which are unused the channel estimate can be NaN or +/- infinity.
-            if strcmp(active_ch_estim_type,'wiener') == true
-
-                % real world channel estimation based on precalculated wiener filter coefficients assuming worst-case channel conditions
-                ch_estim = lib_rx.channel_estimation_wiener(antenna_streams_mapped_rev, physical_resource_mapping_DRS_cell, wiener_, N_RX, N_eff_TX);
-
-            elseif strcmp(active_ch_estim_type,'least squares') == true
-
-                % Zero forcing at the pilots and linear interpolation for subcarriers inbetween.
-                % It works without channel knowledge, but has a fairly large error floor.
-                % The error floor is comes from only considering the closest neighbours.
-                ch_estim = lib_rx.channel_estimation_ls(antenna_streams_mapped_rev, physical_resource_mapping_STF_cell, physical_resource_mapping_DRS_cell, N_RX, N_eff_TX);
-
-
-            else
-                error('Unknown channel estimation type %s.', active_ch_estim_type);
-            end
+            ch_estim = lib_rx.channel_estimation_wiener(antenna_streams_mapped_rev, ...
+                                                        physical_resource_mapping_DRS_cell, ...
+                                                        wiener_, ...
+                                                        N_RX, ...
+                                                        N_eff_TX);
             
             %% equalization and detection
             % With the known transmission mode and the channel estimate, we can now extract the binary data from the packet.
             % Equalization here is understood as the inversion of channel effects at the subcarriers, usually paired with a symbol demapper.
             % For MIMO detection with N_SS > 1 and symbol detection, equalization is not performed explicitly but is implicit part of the underlying algorithm.
-            if active_equalization_detection == true
+            if ~isempty(equalization_detection_config)
                 
                 % SISO
                 if N_eff_TX == 1 && N_RX ==1
@@ -280,67 +243,111 @@ classdef dect_rx < handle
 
             %% PCC and PDC decoding
             % decode PCC
-            [PCC_user_bits, PCC_harq_buf_40_report,...
-                            PCC_harq_buf_80_report,...
-                            CL_report,...
-                            BF_report,...
-                            PCC_report,...
-                            pcc_dec_dbg] =  lib_7_transmission_encoding.PCC_decoding(x_PCC_rev, ...
-                                                                                     harq_buf_40_,...
-                                                                                     harq_buf_80_);
+            [plcf_bits_recovered, ...
+             PCC_HARQ_buf_40_report, ...
+             PCC_HARQ_buf_80_report, ...
+             CL_report, ...
+             BF_report, ...
+             pcc_dec_dbg] =  lib_7_transmission_encoding.PCC_decoding(x_PCC_rev, ...
+                                                                      obj.tx_config.PLCF_type, ...
+                                                                      HARQ_buf_40_, ...
+                                                                      HARQ_buf_80_);
             
             % decode PDC
-            [PDC_user_bits, PDC_harq_buf_report, pdc_dec_dbg] = lib_7_transmission_encoding.PDC_decoding(x_PDC_rev,...
-                                                                                                         N_TB_bits,...
-                                                                                                         Z,...
-                                                                                                         network_id,...
-                                                                                                         PLCF_type,...
-                                                                                                         rv,...
-                                                                                                         modulation0,...
-                                                                                                         harq_buf_);
+            [tb_bits_recovered, PDC_HARQ_buf_report, pdc_dec_dbg] = lib_7_transmission_encoding.PDC_decoding(x_PDC_rev, ...
+                                                                                                             N_TB_bits, ...
+                                                                                                             Z, ...
+                                                                                                             network_id, ...
+                                                                                                             PLCF_type, ...
+                                                                                                             rv, ...
+                                                                                                             modulation0, ...
+                                                                                                             HARQ_buf_);
 
-            %% HARQ buffers
-            % save harq buffer for next call
-            if numel(PCC_harq_buf_40_report) > 0
-                obj.harq_buf_40 = PCC_harq_buf_40_report;
+            %% save HARQ buffers for next call
+            if numel(PCC_HARQ_buf_40_report) > 0
+                obj.HARQ_buf_40 = PCC_HARQ_buf_40_report;
             end
-            if numel(PCC_harq_buf_80_report) > 0
-                obj.harq_buf_80 = PCC_harq_buf_80_report;
+            if numel(PCC_HARQ_buf_80_report) > 0
+                obj.HARQ_buf_80 = PCC_HARQ_buf_80_report;
             end            
-            if numel(PDC_harq_buf_report) > 0
-                obj.harq_buf = PDC_harq_buf_report;
+            if numel(PDC_HARQ_buf_report) > 0
+                obj.HARQ_buf = PDC_HARQ_buf_report;
             end
 
-            %% save packet data for debugging
-            obj.packet_data.CL_report   = CL_report;
-            obj.packet_data.BF_report   = BF_report;
-            obj.packet_data.PCC_report  = PCC_report;
+            %% save packet data
+            obj.packet_data.x_PCC_rev = x_PCC_rev;
+            obj.packet_data.x_PDC_rev = x_PDC_rev;
+            obj.packet_data.CL_report = CL_report;
+            obj.packet_data.BF_report = BF_report;
+            obj.packet_data.plcf_bits_recovered = plcf_bits_recovered;
+            obj.packet_data.tb_bits_recovered = tb_bits_recovered;
             obj.packet_data.pcc_dec_dbg = pcc_dec_dbg;
             obj.packet_data.pdc_dec_dbg = pdc_dec_dbg;
 
-            % debugging
-            if verbose_ > 0
-                disp('##### RX debugging ######');
-                
-                % compare complex symbols of PCC and PDF
-                fprintf('Max error distance PCC: %.20f\n', max(abs(x_PCC_rev - tx_handle_.packet_data.x_PCC)));
-                fprintf('Max error distance PDC: %.20f\n', max(abs(x_PDC_rev - tx_handle_.packet_data.x_PDC)));
-
-                % measure the sinr in dB by comparing the complex PDC symbols
-                tx_power_measurement = tx_handle_.packet_data.x_PDC;
-                tx_power_measurement = sum(abs(tx_power_measurement).^2)/numel(tx_power_measurement);
-                noise_power_measurement = x_PDC_rev - tx_handle_.packet_data.x_PDC;
-                noise_power_measurement = sum(abs(noise_power_measurement).^2)/numel(noise_power_measurement);
-                sinr = 10*log10(tx_power_measurement/noise_power_measurement);
-                fprintf('Measured f domain SINR: %f dB\n', sinr);
-                fprintf('Measured sto_fractional: %f samples\n', obj.packet_data.STO_CFO_report.sto_fractional);
-
-                if verbose_ > 1
-                    lib_util.plot_chestim(ch_estim, obj.phy_4_5.numerology.n_guards_bottom, obj.phy_4_5.numerology.n_guards_top);
-                    scatterplot(x_PDC_rev);                    
-                end
+            if verbosity > 0
+                disp('##### RX Packet ######');
+                fprintf('Measured sto_fractional: %f samples\n\n', obj.packet_data.residual_report.sto_fractional);
             end
+
+            if verbosity > 1
+                lib_util.lib_plot_print.plot_channel_estimation(ch_estim, ...
+                                                                obj.phy_4_5.numerology.n_guards_bottom, ...
+                                                                obj.phy_4_5.numerology.n_guards_top);
+                scatterplot(x_PDC_rev);                    
+            end
+        end
+
+        function n = get_pcc_bit_errors_uncoded(obj, tx)
+            n = sum(abs(double(tx.packet_data.pcc_enc_dbg.d) - double(obj.packet_data.pcc_dec_dbg.d_hard)));
+        end
+
+        function n = get_pdc_bit_errors_uncoded(obj, tx)
+            n = sum(abs(double(tx.packet_data.pdc_enc_dbg.d) - double(obj.packet_data.pdc_dec_dbg.d_hard)));
+        end
+
+        function ret = are_plcf_bits_equal(obj, tx)
+            % in case decoding failed, i.e. incorrect CRC
+            if numel(obj.packet_data.plcf_bits_recovered) == 0
+                ret = false;
+                return;
+            end
+
+            % decoding was successful, however, the CRC can still be incorrect
+            if sum(tx.packet_data.plcf_bits - double(obj.packet_data.plcf_bits_recovered)) == 0
+                ret = true;
+            else
+                ret = false;
+            end
+        end
+
+        function ret = are_tb_bits_equal(obj, tx)
+            % in case decoding failed, i.e. incorrect CRC
+            if numel(obj.packet_data.tb_bits_recovered) == 0
+                ret = false;
+                return;
+            end
+
+            % decoding was successful, however, the CRC can still be incorrect
+            if sum(tx.packet_data.tb_bits - double(obj.packet_data.tb_bits_recovered)) == 0
+                ret = true;
+            else
+                ret = false;
+            end
+        end
+
+        function sinr = get_sinr(obj, tx)
+            tx_power_measurement = tx.packet_data.x_PDC;
+            tx_power_measurement = sum(abs(tx_power_measurement).^2)/numel(tx_power_measurement);
+
+            if numel(obj.packet_data.x_PDC_rev) == 0
+                sinr = NaN
+                return;
+            end
+
+            noise_power_measurement = obj.packet_data.x_PDC_rev - tx.packet_data.x_PDC;
+            noise_power_measurement = sum(abs(noise_power_measurement).^2)/numel(noise_power_measurement);
+
+            sinr = 10*log10(tx_power_measurement/noise_power_measurement);
         end
     end
 end
-

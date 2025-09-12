@@ -1,58 +1,65 @@
-classdef dect_tx < handle
+classdef tx_t < matlab.mixin.Copyable
     
     properties
-        verbose;        % show data during execution: 0 false, 1 only text, 2 text + plots
-        config_tx;      % data received from MAC layer
+        tx_config;      % data received from MAC layer
         phy_4_5;        % data from chapter 4 and 5
-        
         packet_data;    % intermediate results during packet decoding
     end
     
     methods
-        function obj = dect_tx(verbose_arg, config_tx_arg)
-            obj.verbose = verbose_arg;
-            obj.config_tx = config_tx_arg;
-            obj.phy_4_5 = lib_util.run_chapter_4_5(verbose_arg, config_tx_arg);
+        function obj = tx_t(tx_config)
+            assert(isa(tx_config, "tx_config_t"));
+            assert(tx_config.is_valid());
 
+            obj.tx_config = tx_config;
+            obj.phy_4_5 = lib_util.run_chapter_4_5(tx_config);
             obj.packet_data = [];
+
+            if obj.tx_config.verbosity > 1
+                lib_util.lib_plot_print.plot_resource_mapping(obj.phy_4_5.numerology, ...
+                                                              obj.phy_4_5.N_PACKET_symb, ...
+                                                              obj.phy_4_5.tm_mode.N_TS, ...
+                                                              obj.phy_4_5.tm_mode.N_SS, ...
+                                                              obj.phy_4_5.physical_resource_mapping_STF_cell, ...
+                                                              obj.phy_4_5.physical_resource_mapping_DRS_cell, ...
+                                                              obj.phy_4_5.physical_resource_mapping_PCC_cell, ...
+                                                              obj.phy_4_5.physical_resource_mapping_PDC_cell);
+            end
         end
         
-        % We pass the bits for the PCC and PDC, and OFDM samples for each antenna are returned.
-        % This function basically does all the things described in chapter 7, based on the generic procedures of chapter 6.
-        function [samples_antenna_tx] = generate_packet(obj, PCC_user_bits, PDC_user_bits)
+        function [samples_antenna_tx] = generate_packet(obj, plcf_bits, tb_bits)
             
-            %% part 3
-            % for the purpose of readability, read all variables that are necessary at this stage
+            %% for the purpose of readability, read all variables that are necessary at this stage
 
-            verbose_        = obj.verbose;
+            verbosity_          = obj.tx_config.verbosity;
 
-            mode_0_to_11    = obj.phy_4_5.tm_mode.mode_0_to_11;
-            N_SS            = obj.phy_4_5.tm_mode.N_SS;
-            CL              = obj.phy_4_5.tm_mode.CL;
-            N_TS            = obj.phy_4_5.tm_mode.N_TS;
-            N_TX            = obj.phy_4_5.tm_mode.N_TX;
-            N_eff_TX        = obj.phy_4_5.tm_mode.N_eff_TX;
+            mode_0_to_11        = obj.phy_4_5.tm_mode.mode_0_to_11;
+            N_SS                = obj.phy_4_5.tm_mode.N_SS;
+            CL                  = obj.phy_4_5.tm_mode.CL;
+            N_TS                = obj.phy_4_5.tm_mode.N_TS;
+            N_TX                = obj.phy_4_5.tm_mode.N_TX;
+            N_eff_TX            = obj.phy_4_5.tm_mode.N_eff_TX;
 
-            modulation0     = obj.phy_4_5.mcs.modulation0;
+            modulation0         = obj.phy_4_5.mcs.modulation0;
 
-            N_b_DFT         = obj.phy_4_5.numerology.N_b_DFT;            
-            N_b_CP          = obj.phy_4_5.numerology.N_b_CP;
+            N_b_DFT             = obj.phy_4_5.numerology.N_b_DFT;
+            N_b_CP              = obj.phy_4_5.numerology.N_b_CP;
 
-            N_PACKET_symb   = obj.phy_4_5.N_PACKET_symb;
-            k_b_OCC         = obj.phy_4_5.k_b_OCC;
-            n_STF_samples   = obj.phy_4_5.n_STF_samples;
+            N_PACKET_symb       = obj.phy_4_5.N_PACKET_symb;
+            k_b_OCC             = obj.phy_4_5.k_b_OCC;
+            n_STF_samples       = obj.phy_4_5.n_STF_samples;
             
             n_total_bits        = obj.phy_4_5.n_total_bits;
             n_spectrum_occupied = obj.phy_4_5.n_spectrum_occupied;
 
-            b                   = obj.config_tx.b;
-            u                   = obj.config_tx.u;
-            Z                   = obj.config_tx.Z;
-            codebook_index      = obj.config_tx.codebook_index;
-            network_id          = obj.config_tx.network_id;
-            PLCF_type           = obj.config_tx.PLCF_type;
-            rv                  = obj.config_tx.rv;
-            oversampling        = obj.config_tx.oversampling;
+            u                   = obj.tx_config.u;
+            b                   = obj.tx_config.b;
+            Z                   = obj.tx_config.Z;
+            codebook_index      = obj.tx_config.codebook_index;
+            network_id          = obj.tx_config.network_id;
+            PLCF_type           = obj.tx_config.PLCF_type;
+            rv                  = obj.tx_config.rv;
+            oversampling        = obj.tx_config.oversampling;
 
             physical_resource_mapping_PCC_cell = obj.phy_4_5.physical_resource_mapping_PCC_cell;
             physical_resource_mapping_PDC_cell = obj.phy_4_5.physical_resource_mapping_PDC_cell;
@@ -73,15 +80,17 @@ classdef dect_tx < handle
                 end
             end
             
-            % first we calculate complex samples for PCC and PDC
-            % pcc_enc_dbg and pdc_enc_dbg contain debugging information            
-            [x_PCC, pcc_enc_dbg] = lib_7_transmission_encoding.PCC_encoding(PCC_user_bits, CL, precoding_identity_matrix);
-            [x_PDC, pdc_enc_dbg] = lib_7_transmission_encoding.PDC_encoding(PDC_user_bits,...
-                                                                            n_total_bits,...
-                                                                            Z,...
-                                                                            network_id,...
-                                                                            PLCF_type,...
-                                                                            rv,...
+            % First, we calculate complex samples for PCC and PDC.
+            % pcc_enc_dbg and pdc_enc_dbg contain debugging information.
+            [x_PCC, pcc_enc_dbg] = lib_7_transmission_encoding.PCC_encoding(plcf_bits, ...
+                                                                            CL, ...
+                                                                            precoding_identity_matrix);
+            [x_PDC, pdc_enc_dbg] = lib_7_transmission_encoding.PDC_encoding(tb_bits, ...
+                                                                            n_total_bits, ...
+                                                                            Z, ...
+                                                                            network_id, ...
+                                                                            PLCF_type, ...
+                                                                            rv, ...
                                                                             modulation0);
                                                                         
             % Next we map PCC and PDC to spatial streams (ss), see Table 6.3.2-1.
@@ -125,20 +134,26 @@ classdef dect_tx < handle
             antenna_streams_mapped = lib_6_generic_procedures.Beamforming(transmit_streams, N_TX, codebook_index);
 
             % switch to time domain
-            samples_antenna_tx = lib_6_generic_procedures.ofdm_signal_generation_Cyclic_prefix_insertion(antenna_streams_mapped,...
-                                                                                                            k_b_OCC,...
-                                                                                                            N_PACKET_symb,...
-                                                                                                            N_TX,...
-                                                                                                            N_eff_TX,...
-                                                                                                            N_b_DFT,...
-                                                                                                            u,...
-                                                                                                            N_b_CP,...
-                                                                                                            oversampling);
+            samples_antenna_tx = lib_6_generic_procedures.ofdm_signal_generation_Cyclic_prefix_insertion(antenna_streams_mapped, ...
+                                                                                                         k_b_OCC, ...
+                                                                                                         N_PACKET_symb, ...
+                                                                                                         N_TX, ...
+                                                                                                         N_eff_TX, ...
+                                                                                                         N_b_DFT, ...
+                                                                                                         u, ...
+                                                                                                         N_b_CP, ...
+                                                                                                         oversampling);
 
             % apply STF cover sequence
             samples_antenna_tx = lib_6_generic_procedures.STF_signal_cover_sequence(samples_antenna_tx, u, b*oversampling);
 
-            %% save packet data for debugging
+            assert(numel(transmit_streams) == N_TS);
+            assert(numel(antenna_streams_mapped) == N_TX);
+            assert(numel(antenna_streams_mapped) == N_TX);       
+
+            %% save packet data
+            obj.packet_data.plcf_bits = plcf_bits;
+            obj.packet_data.tb_bits = tb_bits;
             obj.packet_data.x_PCC = x_PCC;
             obj.packet_data.x_PDC = x_PDC;
             obj.packet_data.pcc_enc_dbg = pcc_enc_dbg;
@@ -147,28 +162,26 @@ classdef dect_tx < handle
             obj.packet_data.y_PDC_ts = y_PDC_ts;
             obj.packet_data.antenna_streams_mapped = antenna_streams_mapped;
 
-            %% sanity checks
-            if numel(transmit_streams) ~= N_TS
-                error('We expect N_TS = %d transmit streams, but only %d streams were generated.', N_TS, numel(transmit_streams));
-            end
-            if numel(antenna_streams_mapped) ~= N_TX
-                error('We expect N_TX = %d beamformed streams, but only %d streams were generated.', N_TX, numel(antenna_streams));
-            end
-            if numel(antenna_streams_mapped) ~= N_TX
-                error('We expect N_TX = %d antenna streams, but only %d streams were generated.', N_TX, numel(antenna_streams_mapped));
-            end
-                                                                                  
-            % debugging
-            if verbose_ > 0
-                lib_util.check_power_t_f_domain(antenna_streams_mapped, n_spectrum_occupied, samples_antenna_tx, n_STF_samples);
+            if verbosity_ > 0
+                lib_util.lib_plot_print.print_power(antenna_streams_mapped, n_spectrum_occupied, samples_antenna_tx, n_STF_samples);
+            end   
+        end
+
+        function [samples_antenna_tx] = generate_random_packet(obj)
+
+            % PLCF
+            if obj.tx_config.PLCF_type == 1
+                plcf_bits = randi([0 1], 40, 1);
+            elseif obj.tx_config.PLCF_type == 2
+                plcf_bits = randi([0 1], 80, 1);
+            else
+                error("undefined PLCF type");
             end
             
-            % debugging
-            if verbose_ > 1
-                lib_util.plot_resource_mapping_before_antenna(antenna_streams_mapped);
-                lib_util.plot_STF(samples_antenna_tx, u, N_b_DFT, oversampling);
-            end
+            % transport block
+            tb_bits = randi([0 1], obj.phy_4_5.N_TB_bits, 1);
+
+            samples_antenna_tx = obj.generate_packet(plcf_bits, tb_bits);
         end
     end
 end
-

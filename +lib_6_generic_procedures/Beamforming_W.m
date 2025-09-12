@@ -278,5 +278,3 @@ function [W] = Beamforming_W(N_TS, N_TX, codebook_index)
         error('Beamforming configuration is unknown, N_TS = %d and N_TX = %d.', N_TS, N_TX);
     end
 end
-
-

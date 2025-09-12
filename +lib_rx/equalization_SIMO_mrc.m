@@ -1,4 +1,7 @@
-function [x_PDC_rev] = equalization_SIMO_mrc(antenna_streams_mapped_rev, ch_estim, physical_resource_mapping_PDC_cell, N_RX)
+function [x_PDC_rev] = equalization_SIMO_mrc(antenna_streams_mapped_rev, ...
+                                             ch_estim, ...
+                                             physical_resource_mapping_PDC_cell, ...
+                                             N_RX)
 
     % source: https://en.wikipedia.org/wiki/Maximal-ratio_combining
     
@@ -22,4 +25,3 @@ function [x_PDC_rev] = equalization_SIMO_mrc(antenna_streams_mapped_rev, ch_esti
     % extract PDC
     x_PDC_rev = lib_7_transmission_encoding.subcarrier_demapping_PDC(antenna_streams_mapped_combined_rev, physical_resource_mapping_PDC_cell);    
 end
-

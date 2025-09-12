@@ -1,12 +1,12 @@
-function [samples_antenna] = ofdm_signal_generation_Cyclic_prefix_insertion(antenna_streams_mapped,...
-                                                                                k_b_OCC,...
-                                                                                N_PACKET_symb,...
-                                                                                N_TX,...
-                                                                                N_eff_TX,...
-                                                                                N_b_DFT,...
-                                                                                u,...
-                                                                                N_b_CP,...
-                                                                                oversampling)
+function [samples_antenna] = ofdm_signal_generation_Cyclic_prefix_insertion(antenna_streams_mapped, ...
+                                                                            k_b_OCC, ...
+                                                                            N_PACKET_symb, ...
+                                                                            N_TX, ...
+                                                                            N_eff_TX, ...
+                                                                            N_b_DFT, ...
+                                                                            u, ...
+                                                                            N_b_CP, ...
+                                                                            oversampling)
 
     % when oversampling (os), our signal must remain in the center of the spectrum
     os_idx_start = (oversampling-1)*N_b_DFT/2 + 1;
@@ -27,7 +27,7 @@ function [samples_antenna] = ofdm_signal_generation_Cyclic_prefix_insertion(ante
         %   The highest frequency (on the right in the spectrum) has an index 31 at the very top of the Figure.
         %   In the array 'temp' this corresponds to the index 1.
         %
-        %   The dc in the ofdm spectrum has an index 0 in the center of the Figure.
+        %   The dc in the OFDM spectrum has an index 0 in the center of the Figure.
         %   In the array 'temp' this corresponds to the index 32.
         %
         %   The lowest frequency (on the left in the spectrum) has an index -32 at the very bottom of the Figure.
@@ -56,45 +56,45 @@ function [samples_antenna] = ofdm_signal_generation_Cyclic_prefix_insertion(ante
             STF_in_samples = (T_u_symb_in_samples*14)/9;
 
             % modulate into time domain
-            hMod = comm.OFDMModulator('FFTLength',N_b_DFT,...
-                                        'NumGuardBandCarriers', [0; 0],...
-                                        'InsertDCNull', false,...
-                                        'PilotInputPort', false,...
-                                        'CyclicPrefixLength', N_b_CP_vec,... 'Windowing', false,'WindowLength', 1,...
-                                        'NumSymbols', N_PACKET_symb,...
+            hMod = comm.OFDMModulator('FFTLength',N_b_DFT, ...
+                                        'NumGuardBandCarriers', [0; 0], ...
+                                        'InsertDCNull', false, ...
+                                        'PilotInputPort', false, ...
+                                        'CyclicPrefixLength', N_b_CP_vec, ... 'Windowing', false,'WindowLength', 1, ...
+                                        'NumSymbols', N_PACKET_symb, ...
                                         'NumTransmitAntennas', N_TX);
             samples_antenna = hMod(mat_antenna_streams_mapped_matlab_compatible);            
             
-%             % compatible code, can be used to verify modulation
-%             if 1==1
-%                 samples_antenna_compare = zeros(size(samples_antenna));
-%                 for i=1:1:N_TX
-% 
-%                     % extract f-domain
-%                     antenna_streams_mapped_i                                = zeros(N_b_DFT, N_PACKET_symb);
-%                     antenna_streams_mapped_i(os_idx_start : os_idx_end, :)  = cell2mat(antenna_streams_mapped(i));
-%                     antenna_streams_mapped_i_ud                             = flipud(antenna_streams_mapped_i);
-%                     antenna_streams_mapped_i_s                              = fftshift(antenna_streams_mapped_i_ud, 1);
-%                     antenna_streams_mapped_i_t                              = ifft(antenna_streams_mapped_i_s, N_b_DFT, 1);
-% 
-%                     % create stf
-%                     stf_t = antenna_streams_mapped_i_t(:,1);
-%                     stf_t_cp = [stf_t(end - (N_b_DFT*3)/4 + 1 : end); stf_t];
-% 
-%                     % create data
-%                     data_t = antenna_streams_mapped_i_t(:,2:end);
-%                     data_t_cp = [data_t(end- N_b_CP + 1: end,:); data_t];
-% 
-%                     % concat
-%                     samples_antenna_compare(:,i) = [stf_t_cp; reshape(data_t_cp, numel(data_t_cp), 1)];
-%                 end
-% 
-%                 % check if samples are the same
-%                 diff = samples_antenna - samples_antenna_compare;
-%                 if max(max(abs(diff))) > 1e-8
-%                     error('Matlab and compatible code do not show the same result.');
-%                 end
-%             end
+            % % compatible code, can be used to verify modulation
+            % if 1==1
+            %     samples_antenna_compare = zeros(size(samples_antenna));
+            %     for i=1:1:N_TX
+            % 
+            %         % extract f-domain
+            %         antenna_streams_mapped_i                                = zeros(N_b_DFT, N_PACKET_symb);
+            %         antenna_streams_mapped_i(os_idx_start : os_idx_end, :)  = cell2mat(antenna_streams_mapped(i));
+            %         antenna_streams_mapped_i_ud                             = flipud(antenna_streams_mapped_i);
+            %         antenna_streams_mapped_i_s                              = fftshift(antenna_streams_mapped_i_ud, 1);
+            %         antenna_streams_mapped_i_t                              = ifft(antenna_streams_mapped_i_s, N_b_DFT, 1);
+            % 
+            %         % create stf
+            %         stf_t = antenna_streams_mapped_i_t(:,1);
+            %         stf_t_cp = [stf_t(end - (N_b_DFT*3)/4 + 1 : end); stf_t];
+            % 
+            %         % create data
+            %         data_t = antenna_streams_mapped_i_t(:,2:end);
+            %         data_t_cp = [data_t(end- N_b_CP + 1: end,:); data_t];
+            % 
+            %         % concat
+            %         samples_antenna_compare(:,i) = [stf_t_cp; reshape(data_t_cp, numel(data_t_cp), 1)];
+            %     end
+            % 
+            %     % check if samples are the same
+            %     diff = samples_antenna - samples_antenna_compare;
+            %     if max(max(abs(diff))) > 1e-8
+            %         error('Matlab and compatible code do not show the same result.');
+            %     end
+            % end
             
             % shorten GI for u=1, see Figure 5.1-1
             GI_length_in_samples_now = N_b_CP + N_b_DFT;
@@ -120,55 +120,55 @@ function [samples_antenna] = ofdm_signal_generation_Cyclic_prefix_insertion(ante
             mat_antenna_streams_mapped_matlab_compatible = [mat_antenna_streams_mapped_matlab_compatible(:,1,:), mat_antenna_streams_mapped_matlab_compatible];
             
             % modulate into time domain
-            hMod = comm.OFDMModulator('FFTLength',N_b_DFT,...
-                                        'NumGuardBandCarriers', [0; 0],...
-                                        'InsertDCNull', false,...
-                                        'PilotInputPort', false,...
-                                        'CyclicPrefixLength', N_b_CP_vec,... 'Windowing', false,'WindowLength', 1,...
-                                        'NumSymbols', N_PACKET_symb,...
+            hMod = comm.OFDMModulator('FFTLength',N_b_DFT, ...
+                                        'NumGuardBandCarriers', [0; 0], ...
+                                        'InsertDCNull', false, ...
+                                        'PilotInputPort', false, ...
+                                        'CyclicPrefixLength', N_b_CP_vec, ... 'Windowing', false,'WindowLength', 1, ...
+                                        'NumSymbols', N_PACKET_symb, ...
                                         'NumTransmitAntennas', N_TX);
             samples_antenna = hMod(mat_antenna_streams_mapped_matlab_compatible);
 
-%             % compatible code, can be used to verify modulation
-%             if 1==1
-%                 samples_antenna_compare = zeros(size(samples_antenna));
-%                 for i=1:1:N_TX
-%                     
-%                     % extract f-domain
-%                     antenna_streams_mapped_i                                = zeros(N_b_DFT, N_PACKET_symb);
-%                     antenna_streams_mapped_i(os_idx_start : os_idx_end, :)  = cell2mat(antenna_streams_mapped(i));
-%                     antenna_streams_mapped_i_ud                             = flipud(antenna_streams_mapped_i);
-%                     antenna_streams_mapped_i_s                              = fftshift(antenna_streams_mapped_i_ud, 1);
-%                     antenna_streams_mapped_i_t                              = ifft(antenna_streams_mapped_i_s, N_b_DFT, 1);
-% 
-%                     % create stf
-%                     stf_t = antenna_streams_mapped_i_t(:,1);
-%                     stf_t_cp = [stf_t(end - (N_b_DFT*1)/4 + 1 : end); stf_t; stf_t];
-% 
-%                     % create data
-%                     data_t = antenna_streams_mapped_i_t(:,2:end-1);
-%                     data_t_cp = [data_t(end- N_b_CP + 1: end,:); data_t];
-% 
-%                     % concat
-%                     samples_antenna_compare(:,i) = [stf_t_cp; reshape(data_t_cp, numel(data_t_cp), 1)];
-%                 end
-% 
-%                 % check if samples are the same
-%                 diff = samples_antenna - samples_antenna_compare;
-%                 if max(max(abs(diff))) > 1e-8
-%                     error('Matlab and compatible code do not show the same result.');
-%                 end
-%             end
+            % % compatible code, can be used to verify modulation
+            % if 1==1
+            %     samples_antenna_compare = zeros(size(samples_antenna));
+            %     for i=1:1:N_TX
+            % 
+            %         % extract f-domain
+            %         antenna_streams_mapped_i                                = zeros(N_b_DFT, N_PACKET_symb);
+            %         antenna_streams_mapped_i(os_idx_start : os_idx_end, :)  = cell2mat(antenna_streams_mapped(i));
+            %         antenna_streams_mapped_i_ud                             = flipud(antenna_streams_mapped_i);
+            %         antenna_streams_mapped_i_s                              = fftshift(antenna_streams_mapped_i_ud, 1);
+            %         antenna_streams_mapped_i_t                              = ifft(antenna_streams_mapped_i_s, N_b_DFT, 1);
+            % 
+            %         % create stf
+            %         stf_t = antenna_streams_mapped_i_t(:,1);
+            %         stf_t_cp = [stf_t(end - (N_b_DFT*1)/4 + 1 : end); stf_t; stf_t];
+            % 
+            %         % create data
+            %         data_t = antenna_streams_mapped_i_t(:,2:end-1);
+            %         data_t_cp = [data_t(end- N_b_CP + 1: end,:); data_t];
+            % 
+            %         % concat
+            %         samples_antenna_compare(:,i) = [stf_t_cp; reshape(data_t_cp, numel(data_t_cp), 1)];
+            %     end
+            % 
+            %     % check if samples are the same
+            %     diff = samples_antenna - samples_antenna_compare;
+            %     if max(max(abs(diff))) > 1e-8
+            %         error('Matlab and compatible code do not show the same result.');
+            %     end
+            % end
     end
     
     % 6.3.5
     % power scaling is always a little troublesome:
     %
-    %   Each sinuoid, z_k_l*exp(j2pi...), has a power of one, so the total power of the ofdm signal would be N_OCC_l.
+    %   Each sinuoid, z_k_l*exp(j2pi...), has a power of one, so the total power of the OFDM signal would be N_OCC_l.
     %   When using the ifft, however, matlab adds a factor 1/N_b_DFT to each sinuoid (https://de.mathworks.com/help/matlab/ref/ifft.html), so the total power is N_OCC_l/N_b_DFT^2.
     %   When adding a factor sqrt(N_b_DFT) to each sinuoid, the total power becomes N_OCC_l/N_b_DFT. So when all subcarriers were used, i.e. N_OCC_l=N_b_DFT, total power would be one.
     %
-    %   To get an average power of one for the entire ofdm signal even when only a subset of subcarriers is used, we have to add a factor N_b_DFT/sqrt(N_OCC_l).
+    %   To get an average power of one for the entire OFDM signal even when only a subset of subcarriers is used, we have to add a factor N_b_DFT/sqrt(N_OCC_l).
     %   The total power then becomes N_OCC_l/N_b_DFT^2 * (N_b_DFT/sqrt(N_OCC_l))^2 = 1.
     
     % scale all symbols but STF
@@ -184,20 +184,15 @@ function [samples_antenna] = ofdm_signal_generation_Cyclic_prefix_insertion(ante
     % !!!!!!!!!!! NOT STANDARD COMPLIANT !!!!!!!!!!!
     % !!!!!!!!!!! NOT STANDARD COMPLIANT !!!!!!!!!!!
     % The STF in inserted only into the first transmit stream.
-    % When using multiple antennas, we have to boost the STF so it has the same average power as the other ofdm symbols.
+    % When using multiple antennas, we have to boost the STF so it has the same average power as the other OFDM symbols.
     %samples_antenna(1:STF_in_samples,:) = sqrt(N_eff_TX)*samples_antenna(1:STF_in_samples,:);
     % !!!!!!!!!!! NOT STANDARD COMPLIANT !!!!!!!!!!!
     % !!!!!!!!!!! NOT STANDARD COMPLIANT !!!!!!!!!!!
     % !!!!!!!!!!! NOT STANDARD COMPLIANT !!!!!!!!!!!
     % !!!!!!!!!!! NOT STANDARD COMPLIANT !!!!!!!!!!!
 
-    % sanity check
     [n_samples, n_ant] = size(samples_antenna);
-    if n_samples ~= N_PACKET_symb*(N_b_DFT*9)/8
-        error('Incorrect number of samples.');
-    end
-    if n_ant ~= N_TX
-        error('Incorrect number of antennas.');
-    end
-end
 
+    assert(n_samples == N_PACKET_symb*(N_b_DFT*9)/8);
+    assert(n_ant == N_TX);
+end

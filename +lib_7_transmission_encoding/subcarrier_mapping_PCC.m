@@ -9,7 +9,7 @@ function [transmit_streams] = subcarrier_mapping_PCC(transmit_streams, physical_
     N_TS = numel(transmit_streams);
     N_b_DFT = size(cell2mat(transmit_streams(1)),1);    
 
-    % get all relevant ofdm symbols, equal for each transmit stream
+    % get all relevant OFDM symbols, equal for each transmit stream
     l_vec = cell2mat(physical_resource_mapping_PCC_cell(end-1));
     
     % map for each transmit stream
@@ -20,7 +20,7 @@ function [transmit_streams] = subcarrier_mapping_PCC(transmit_streams, physical_
         % extract values for this transmit stream
         y_PCC_this_stream = cell2mat(y_PCC(i));        
 
-        % loop over each relevant ofdm symbol
+        % loop over each relevant OFDM symbol
         for j=1:1:numel(l_vec)
 
             % extract
@@ -40,10 +40,6 @@ function [transmit_streams] = subcarrier_mapping_PCC(transmit_streams, physical_
         % replace
         transmit_streams(i) = {some_transmit_stream};        
 
-        % sanity check
-        if numel(y_PCC_this_stream) ~= 0
-            error('Not all symbols of PCC used.');
-        end
+        assert(numel(y_PCC_this_stream) == 0);
     end
 end
-

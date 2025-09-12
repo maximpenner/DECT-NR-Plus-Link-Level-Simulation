@@ -5,14 +5,14 @@
 %
 %       N_TS is the number of transmit streams
 %
-%       physical_resource_mapping_DRS_cell(x,1) contains the subcarrier indices for each ofdm symbol as described in 5.2.3
+%       physical_resource_mapping_DRS_cell(x,1) contains the subcarrier indices for each OFDM symbol as described in 5.2.3
 %
-%       physical_resource_mapping_DRS_cell(x,2) containes the ofdm symbol index where the DRS is placed  
+%       physical_resource_mapping_DRS_cell(x,2) contains the OFDM symbol index where the DRS is placed  
 %
-%       physical_resource_mapping_DRS_cell(x,3) containes the values for each corresponding subcarriers
-%                                               the values are the same for each ofdm symbol, but not for each transmit stream
+%       physical_resource_mapping_DRS_cell(x,3) contains the values for each corresponding subcarriers
+%                                               the values are the same for each OFDM symbol, but not for each transmit stream
 %
-%       physical_resource_mapping_DRS_cell(x,4) containes the linear indices of each subcarrier/ofdm-symbol pair
+%       physical_resource_mapping_DRS_cell(x,4) contains the linear indices of each subcarrier/OFDM-symbol pair
 %
 %
 %   example size (N_TS = 8):
@@ -59,10 +59,7 @@ function [physical_resource_mapping_DRS_cell] = DRS(numerology, k_b_OCC, N_TS, N
     % It is one additional symbol, see figure 4.5-3 in part 3.
     if N_step == 10 && mod(N_PACKET_symb, 10) ~= 0
         
-        % sanity check
-        if mod(N_PACKET_symb, 5) ~= 0
-            error("N_PACKET_symb not a multiple of 5 or 10.");
-        end
+        assert(mod(N_PACKET_symb, 5) == 0);
         
         nof_OFDM_symbols_carying_DRS = nof_OFDM_symbols_carying_DRS + 1;
     end
@@ -79,7 +76,7 @@ function [physical_resource_mapping_DRS_cell] = DRS(numerology, k_b_OCC, N_TS, N
         l = 1 + floor(t/4) + n*N_step;
         
         % matlab related (if n ist a 1x1 vector, matlab create a row vector instead of a column vector)
-        if numel(n) == 1
+        if isscalar(n)
             k_i = k_i';
         end
 
@@ -94,7 +91,7 @@ function [physical_resource_mapping_DRS_cell] = DRS(numerology, k_b_OCC, N_TS, N
     end
     
     % base sequences
-    y_b1 = [1,1,1,1,-1,1,1,-1,-1,1,1,1,1,-1,1,-1,1,1,-1,1,-1,1,-1,1,1,1,1,1,-1,1,...
+    y_b1 = [1,1,1,1,-1,1,1,-1,-1,1,1,1,1,-1,1,-1,1,1,-1,1,-1,1,-1,1,1,1,1,1,-1,1, ...
             -1,-1,1,1,-1,-1,-1,-1,1,-1,-1,-1,-1,-1,1,1,1,-1,1,1,-1,-1,1,-1,-1,-1];
         
     % !!!!!!!!!!! NOT STANDARD COMPLIANT !!!!!!!!!!!
@@ -150,4 +147,3 @@ function [physical_resource_mapping_DRS_cell] = DRS(numerology, k_b_OCC, N_TS, N
         physical_resource_mapping_DRS_cell(t + MATLAB_INDEX_SHIFT, 3) = {y_DRS_i};
     end
 end
-

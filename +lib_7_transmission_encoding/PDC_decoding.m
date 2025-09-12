@@ -1,11 +1,11 @@
-function [PDC_user_bits, PDC_harq_buf_report, pdc_dec_dbg] = PDC_decoding(x_PDC,...
-                                                                            N_TB_bits,...
-                                                                            Z,...
-                                                                            network_id,...
-                                                                            PLCF_type,...
-                                                                            rv,...
-                                                                            modulation,...
-                                                                            harq_buf)
+function [tb_bits_recovered, PDC_HARQ_buf_report, pdc_dec_dbg] = PDC_decoding(x_PDC, ...
+                                                                              N_TB_bits, ...
+                                                                              Z, ...
+                                                                              network_id, ...
+                                                                              PLCF_type, ...
+                                                                              rv, ...
+                                                                              modulation, ...
+                                                                              HARQ_buf)
     %%
     d = lteSymbolDemodulate(x_PDC, modulation, 'Soft');
     
@@ -43,11 +43,11 @@ function [PDC_user_bits, PDC_harq_buf_report, pdc_dec_dbg] = PDC_decoding(x_PDC,
     %chs.DuplexMode = ;
     %chs.TDDConfig = ;
 
-    cbsbuffers = harq_buf;
+    cbsbuffers = HARQ_buf;
 
     d_turbo = lteRateRecoverTurbo(f, N_TB_bits, rv, chs, cbsbuffers);
     
-    PDC_harq_buf_report = d_turbo; % the output of lteRateRecoverTurbo() can be passed on as a cbsbuffers in the next call, will be cleared if CRC is correct
+    PDC_HARQ_buf_report = d_turbo; % the output of lteRateRecoverTurbo() can be passed on as a cbsbuffers in the next call, will be cleared if CRC is correct
 
     %%
     NTurboDecIts = 5;
@@ -68,10 +68,10 @@ function [PDC_user_bits, PDC_harq_buf_report, pdc_dec_dbg] = PDC_decoding(x_PDC,
     
     %% crcError is a logical values that indicates if the crc across the data and the crc appended are the same
     if crcError == 0
-        PDC_user_bits = a;
-        PDC_harq_buf_report = [];   % bits are correct, no need fo buffer in next call
+        tb_bits_recovered = a;
+        PDC_HARQ_buf_report = [];   % bits are correct, no need fo buffer in next call
     else
-        PDC_user_bits = [];
+        tb_bits_recovered = [];
     end    
 
     %% create an output structure for debugging
@@ -84,4 +84,3 @@ function [PDC_user_bits, PDC_harq_buf_report, pdc_dec_dbg] = PDC_decoding(x_PDC,
     pdc_dec_dbg.d_hard = d_hard;
     pdc_dec_dbg.n_code_block_error = sum(segErr~=0);
 end
-

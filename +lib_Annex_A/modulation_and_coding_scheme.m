@@ -84,4 +84,3 @@ function [mcs] = modulation_and_coding_scheme(MCS_index)
     mcs.R_t = R_t;
     mcs.R_b = R_b;
 end
-

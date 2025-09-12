@@ -1,4 +1,4 @@
-function [result] = sync_xcorr(samples_ch, STF_template)
+function [result] = xcorr2(samples_ch, STF_template)
 
     % determine the lengths of both sequences
     n_samples_ch = numel(samples_ch);

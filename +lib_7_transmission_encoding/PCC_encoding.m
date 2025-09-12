@@ -1,6 +1,6 @@
-function [x_PCC, pcc_enc_dbg] = PCC_encoding(PCC_user_bits, CL, precoding_identity_matrix)
+function [x_PCC, pcc_enc_dbg] = PCC_encoding(plcf_bits, CL, precoding_identity_matrix)
     %%
-    a = PCC_user_bits;
+    a = plcf_bits;
 
     %% 7.5.2 crc calculation
     % convert to logical so we can xor
@@ -64,4 +64,3 @@ function [x_PCC, pcc_enc_dbg] = PCC_encoding(PCC_user_bits, CL, precoding_identi
     pcc_enc_dbg.e = e;
     pcc_enc_dbg.d = d;
 end
-

@@ -9,4 +9,3 @@ function [angles] = wrap2_plus_pi_minus_pi(angles)
 
     angles = mod(angles + pi, 2*pi) - pi;
 end
-

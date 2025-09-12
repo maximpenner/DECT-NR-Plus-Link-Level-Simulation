@@ -6,4 +6,3 @@ function [k_b_OCC] = physical_resources(N_b_OCC)
     % remove DC
     k_b_OCC(N_b_OCC/2+1) = [];
 end
-
