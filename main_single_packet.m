@@ -7,12 +7,12 @@ rng('shuffle');
 warning('on');
 
 % configurations are initialized with exemplary values
-tx_config = tx_config_t();
-rx_config = rx_config_t(tx_config);
+tx_config = lib_types.tx_config_t();
+rx_config = lib_types.rx_config_t(tx_config);
 
 % create transmitter, receiver and channel
-tx = tx_t(tx_config);
-rx = rx_t(tx, rx_config);
+tx = lib_types.tx_t(tx_config);
+rx = lib_types.rx_t(tx, rx_config);
 channel = lib_channel.channel_example_factory(tx_config.verbosity, 'rayleigh', tx, rx);
 
 % create a DECT NR+ packet

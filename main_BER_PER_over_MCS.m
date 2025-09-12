@@ -50,7 +50,7 @@ cnt = 1;
 for mcs_index = mcs_index_vec
 
     % configuration is initialized with exemplary values
-    tx_config = tx_config_t();
+    tx_config = lib_types.tx_config_t();
 
     % overwrite exemplary values
     tx_config.u = 1;
@@ -68,17 +68,17 @@ for mcs_index = mcs_index_vec
     tx_config.verbosity = 0;
     
     % create tx
-    tx = tx_t(tx_config);
+    tx = lib_types.tx_t(tx_config);
 
     % configuration is initialized with exemplary values
-    rx_config = rx_config_t(tx_config);
+    rx_config = lib_types.rx_config_t(tx_config);
 
     % overwrite exemplary values
     rx_config.N_RX = 1;
     rx_config.pre_fft_config = [];
 
     % create rx
-    rx = rx_t(tx, rx_config);
+    rx = lib_types.rx_t(tx, rx_config);
 
     % local variables for a single MCS required for parfor, each worker can write into these arrays.
     snr_db_vec = snr_db_vec_global(cnt,:);

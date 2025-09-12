@@ -16,8 +16,8 @@ classdef rx_t < matlab.mixin.Copyable
     
     methods
         function obj = rx_t(tx, rx_config)
-            assert(isa(tx, "tx_t"));
-            assert(isa(rx_config, "rx_config_t"));
+            assert(isa(tx, "lib_types.tx_t"));
+            assert(isa(rx_config, "lib_types.rx_config_t"));
 
             % create copies
             obj.tx_config = tx.tx_config;

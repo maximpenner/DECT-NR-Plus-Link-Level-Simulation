@@ -8,7 +8,7 @@ classdef tx_t < matlab.mixin.Copyable
     
     methods
         function obj = tx_t(tx_config)
-            assert(isa(tx_config, "tx_config_t"));
+            assert(isa(tx_config, "lib_types.tx_config_t"));
             assert(tx_config.is_valid());
 
             obj.tx_config = tx_config;

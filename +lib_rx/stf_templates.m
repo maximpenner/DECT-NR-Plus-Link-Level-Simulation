@@ -1,6 +1,6 @@
 function [STF_templates] = stf_templates(tx_config)
 
-    assert(isa(tx_config, "tx_config_t"));
+    assert(isa(tx_config, "lib_types.tx_config_t"));
 
     %% We save STF template which are known at the receiver.
 
@@ -42,7 +42,7 @@ function [STF_templates] = stf_templates(tx_config)
         tx_config_local.verbosity = 0;
         
         % create a dummy transmitter
-        tx_local = tx_t(tx_config_local);
+        tx_local = lib_types.tx_t(tx_config_local);
         tx_local.tx_config.codebook_index = 0;
 
         % PCC
