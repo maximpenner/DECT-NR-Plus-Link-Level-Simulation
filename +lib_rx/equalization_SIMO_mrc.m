@@ -20,6 +20,6 @@ function [x_PDC_rev] = equalization_SIMO_mrc(antenna_streams_mapped_rev, ch_esti
     antenna_streams_mapped_combined_rev = {numerator_equalized_symbol./denominator_power};
     
     % extract PDC
-    x_PDC_rev = lib_7_Transmission_modes.subcarrier_unmapping_PDC(antenna_streams_mapped_combined_rev, physical_resource_mapping_PDC_cell);    
+    x_PDC_rev = lib_7_transmission_encoding.subcarrier_demapping_PDC(antenna_streams_mapped_combined_rev, physical_resource_mapping_PDC_cell);    
 end
 

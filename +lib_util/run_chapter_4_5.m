@@ -15,7 +15,7 @@ function [phy_4_5] = run_chapter_4_5(verbose, mac_meta)
     %% start generating the frame structure with the functions provided in the technical specification (TS)
 
     % 7.2
-    tm_mode = lib_7_Transmission_modes.transmission_modes(tm_mode_0_to_11);
+    tm_mode = lib_7_transmission_encoding.transmission_modes(tm_mode_0_to_11);
 
     % Annex A
     mcs = lib_Annex_A.modulation_and_coding_scheme(mcs_index);

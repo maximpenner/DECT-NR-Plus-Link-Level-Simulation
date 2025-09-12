@@ -34,4 +34,3 @@ function plot_setup(N_b_DFT)
     colormap jet
     %caxis([0 4])
 end
-

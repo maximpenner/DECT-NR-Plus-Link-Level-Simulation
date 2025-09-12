@@ -2,13 +2,12 @@ classdef dect_rx < handle
     
     properties
         verbose;        % show data during execution: 0 false, 1 only text, 2 text + plots
-        mac_meta;       % data received from MAC layer
+        config_tx;      % data received from MAC layer
         phy_4_5;        % data from chapter 4 and 5
 
         packet_data;    % intermediate results during packet decoding
-        
-        tx_handle;      % handle to tx for debugging
-        ch_handle;      % handle to rf channel for debugging
+
+        config_rx;      % additional configuration of the receiver
 
         STF_templates;  % for synchronization based on STF, both time and frequency domain
         harq_buf_40;    % these are the cbsbuffers used by matlab for harq operation, PCC 40 bits
@@ -19,29 +18,28 @@ classdef dect_rx < handle
     end
     
     methods
-        function obj = dect_rx(verbose_arg, mac_meta_arg)
+        function obj = dect_rx(verbose_arg, config_tx_arg, config_rx_arg)
             % if channel estimation type is not specifically defined, use Wiener as a default
-            if ~isfield(mac_meta_arg, 'active_ch_estim_type')
-                mac_meta_arg.active_ch_estim_type = 'wiener';
+            if ~isfield(config_tx_arg, 'active_ch_estim_type')
+                config_tx_arg.active_ch_estim_type = 'wiener';
             end
 
             % if equalization/detection is not specifically turned off, activate if by default
-            if ~isfield(mac_meta_arg, 'active_equalization_detection')
-                mac_meta_arg.active_equalization_detection = true;
+            if ~isfield(config_tx_arg, 'active_equalization_detection')
+                config_tx_arg.active_equalization_detection = true;
             end
 
             obj.verbose = verbose_arg;
-            obj.mac_meta = mac_meta_arg;
-            obj.phy_4_5 = lib_util.run_chapter_4_5(verbose_arg, mac_meta_arg);
+            obj.config_tx = config_tx_arg;
+            obj.phy_4_5 = lib_util.run_chapter_4_5(verbose_arg, config_tx_arg);
 
             obj.packet_data = [];
 
-            obj.tx_handle = [];
-            obj.ch_handle = [];
+            obj.config_rx = config_rx_arg;
 
             % we only load STF templates if they are needed
-            if mac_meta_arg.synchronization.pre_FFT.active == true
-                obj.STF_templates = lib_rx.sync_STF_template(mac_meta_arg);
+            if config_tx_arg.synchronization.pre_FFT.active == true
+                obj.STF_templates = lib_rx.sync_STF_template(config_tx_arg);
             end
 
             obj.harq_buf_40 = [];
@@ -102,20 +100,20 @@ classdef dect_rx < handle
 
             n_packet_samples    = obj.phy_4_5.n_packet_samples;
 
-            b                   = obj.mac_meta.b;
-            u                   = obj.mac_meta.u;
-            Z                   = obj.mac_meta.Z;
-            network_id          = obj.mac_meta.network_id;
-            PLCF_type           = obj.mac_meta.PLCF_type;
-            rv                  = obj.mac_meta.rv;
-            N_RX                = obj.mac_meta.N_RX;
-            oversampling        = obj.mac_meta.oversampling;
+            b                   = obj.config_tx.b;
+            u                   = obj.config_tx.u;
+            Z                   = obj.config_tx.Z;
+            network_id          = obj.config_tx.network_id;
+            PLCF_type           = obj.config_tx.PLCF_type;
+            rv                  = obj.config_tx.rv;
+            N_RX                = obj.config_tx.N_RX;
+            oversampling        = obj.config_tx.oversampling;
 
-            synchronization     = obj.mac_meta.synchronization;
+            synchronization     = obj.config_tx.synchronization;
 
-            active_ch_estim_type = obj.mac_meta.active_ch_estim_type;
+            active_ch_estim_type = obj.config_tx.active_ch_estim_type;
 
-            active_equalization_detection = obj.mac_meta.active_equalization_detection;
+            active_equalization_detection = obj.config_tx.active_equalization_detection;
 
             physical_resource_mapping_PCC_cell = obj.phy_4_5.physical_resource_mapping_PCC_cell;
             physical_resource_mapping_PDC_cell = obj.phy_4_5.physical_resource_mapping_PDC_cell;
@@ -276,8 +274,8 @@ classdef dect_rx < handle
                 
             % no equalization, a great debugging tool when using awgn channel
             else
-                x_PCC_rev = lib_7_Transmission_modes.subcarrier_unmapping_PCC(antenna_streams_mapped_rev, physical_resource_mapping_PCC_cell);
-                x_PDC_rev = lib_7_Transmission_modes.subcarrier_unmapping_PDC(antenna_streams_mapped_rev, physical_resource_mapping_PDC_cell);                
+                x_PCC_rev = lib_7_transmission_encoding.subcarrier_demapping_PCC(antenna_streams_mapped_rev, physical_resource_mapping_PCC_cell);
+                x_PDC_rev = lib_7_transmission_encoding.subcarrier_demapping_PDC(antenna_streams_mapped_rev, physical_resource_mapping_PDC_cell);                
             end
 
             %% PCC and PDC decoding
@@ -287,19 +285,19 @@ classdef dect_rx < handle
                             CL_report,...
                             BF_report,...
                             PCC_report,...
-                            pcc_dec_dbg] =  lib_7_Transmission_modes.PCC_decoding(  x_PCC_rev, ...
-                                                                                    harq_buf_40_,...
-                                                                                    harq_buf_80_);
+                            pcc_dec_dbg] =  lib_7_transmission_encoding.PCC_decoding(x_PCC_rev, ...
+                                                                                     harq_buf_40_,...
+                                                                                     harq_buf_80_);
             
             % decode PDC
-            [PDC_user_bits, PDC_harq_buf_report, pdc_dec_dbg] = lib_7_Transmission_modes.PDC_decoding(  x_PDC_rev,...
-                                                                                                        N_TB_bits,...
-                                                                                                        Z,...
-                                                                                                        network_id,...
-                                                                                                        PLCF_type,...
-                                                                                                        rv,...
-                                                                                                        modulation0,...
-                                                                                                        harq_buf_);
+            [PDC_user_bits, PDC_harq_buf_report, pdc_dec_dbg] = lib_7_transmission_encoding.PDC_decoding(x_PDC_rev,...
+                                                                                                         N_TB_bits,...
+                                                                                                         Z,...
+                                                                                                         network_id,...
+                                                                                                         PLCF_type,...
+                                                                                                         rv,...
+                                                                                                         modulation0,...
+                                                                                                         harq_buf_);
 
             %% HARQ buffers
             % save harq buffer for next call

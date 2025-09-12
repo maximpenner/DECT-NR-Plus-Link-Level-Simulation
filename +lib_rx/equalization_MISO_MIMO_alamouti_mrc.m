@@ -22,8 +22,8 @@ function [x_PDC_rev_all_rx] = equalization_MISO_MIMO_alamouti_mrc(antenna_stream
     for q=1:1:N_RX  
         
         % extract received samples and channel estimations for each tx antenna
-        x_PDC_rev_orig = lib_7_Transmission_modes.subcarrier_unmapping_PDC(antenna_streams_mapped_rev(q), physical_resource_mapping_PDC_cell);
-        ch_estim_PDC = lib_7_Transmission_modes.subcarrier_unmapping_PDC(ch_estim(q), physical_resource_mapping_PDC_cell);
+        x_PDC_rev_orig = lib_7_transmission_encoding.subcarrier_demapping_PDC(antenna_streams_mapped_rev(q), physical_resource_mapping_PDC_cell);
+        ch_estim_PDC = lib_7_transmission_encoding.subcarrier_demapping_PDC(ch_estim(q), physical_resource_mapping_PDC_cell);
 
         % repeat idx, see modulo operation in Table 6.3.3.2-1 to 6.3.3.2-3
         idx_rep = repmat(idx, ceil(n_x_PxC/size(idx,1)),1);

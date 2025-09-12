@@ -1,4 +1,4 @@
-function [x_PDC_rev] = subcarrier_unmapping_PDC(any_cell_with_single_matrix, physical_resource_mapping_PDC_cell)
+function [x_PDC_rev] = subcarrier_demapping_PDC(any_cell_with_single_matrix, physical_resource_mapping_PDC_cell)
     
     % convert to matrix
     any_mat = cell2mat(any_cell_with_single_matrix);

@@ -1,4 +1,4 @@
-function [x_PCC_rev] = subcarrier_unmapping_PCC(any_cell_with_single_matrix, physical_resource_mapping_PCC_cell)
+function [x_PCC_rev] = subcarrier_demapping_PCC(any_cell_with_single_matrix, physical_resource_mapping_PCC_cell)
 
 %     % Technical Specification assumes first index is 0, matlab 1
 %     MATLAB_INDEX_SHIFT = 1;

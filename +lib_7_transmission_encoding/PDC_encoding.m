@@ -13,7 +13,7 @@ function [x_PDC, pdc_enc_dbg] = PDC_encoding(PDC_user_bits,...
 
     %%
     if Z == 2048
-        c = lib_6_generic_procedures.Code_block_segmentation_Z_2048(b);
+        c = lib_6_generic_procedures.lib_cc_rm_i.Code_block_segmentation_Z_2048(b);
     elseif Z == 6144
         c = lteCodeBlockSegment(b);
     else

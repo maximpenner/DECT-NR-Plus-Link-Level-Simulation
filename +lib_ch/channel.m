@@ -2,8 +2,8 @@ classdef rf_channel < handle
     
     properties
         
-        verbose;
-        verbose_cp;             % Cyclic prefix in samples (oversampling must be included).
+        verbosity;
+        verbosity_cp;           % Cyclic prefix in samples (oversampling must be included).
                                 % Only used when verbose is set to a value above 0 and channel is rayleigh/rician.
                                 % Very useful for debugging to see if channel response is longer than cyclic prefix.
                                 % Otherwise it can be easily missed that the channel response is longer than the CP.
@@ -94,8 +94,8 @@ classdef rf_channel < handle
        % Init parameters outside of constructor, or use the rf_channel_example_factory.
        % This is typically more convenient than controlling all parameters through class methods.
        function obj = rf_channel()
-            obj.verbose                 = 0;
-            obj.verbose_cp              = [];
+            obj.verbosity                 = 0;
+            obj.verbosity_cp              = [];
             obj.type                    = [];
             
             obj.amp                     = [];
@@ -662,7 +662,7 @@ classdef rf_channel < handle
             avgPathGains = pow2db(avgPathGains_linear);
 
             % plot path gains in dB and linear
-            if obj.verbose > 1
+            if obj.verbosity > 1
                 figure()
                 clf()
 
@@ -705,7 +705,7 @@ classdef rf_channel < handle
             end
 
             % show some channel properties
-            if obj.verbose > 0
+            if obj.verbosity > 0
 
                 mean_tau_weighted = sum(pathDelays.*avgPathGains_linear)/sum(avgPathGains_linear);
                 rms_tau = sqrt(sum(((pathDelays-mean_tau_weighted).^2).*avgPathGains_linear)/sum(avgPathGains_linear));
@@ -715,9 +715,9 @@ classdef rf_channel < handle
                 fprintf('Sampling time Ts: %f ns\n', Ts/1e-9);
                 fprintf('Largest delay: %f ns\n', pathDelays(end)/1e-9);
                 fprintf('PDP sampling points: %d\n', n_points);
-                fprintf('CP length: %f ns\n', obj.verbose_cp*Ts/1e-9);
-                fprintf('CP number of samples: %d\n', obj.verbose_cp);
-                fprintf('CP / latest delay: %f\n', obj.verbose_cp*Ts / pathDelays(end));
+                fprintf('CP length: %f ns\n', obj.verbosity_cp*Ts/1e-9);
+                fprintf('CP number of samples: %d\n', obj.verbosity_cp);
+                fprintf('CP / latest delay: %f\n', obj.verbosity_cp*Ts / pathDelays(end));
                 fprintf('Tau mean: %f ns\n', mean(pathDelays)/1e-9);
                 fprintf('Tau mean weighted: %f ns\n', mean_tau_weighted/1e-9);
                 fprintf('Tau rms weighted: %f ns\n', rms_tau/1e-9);

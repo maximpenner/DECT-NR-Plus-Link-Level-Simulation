@@ -2,17 +2,17 @@ classdef dect_tx < handle
     
     properties
         verbose;        % show data during execution: 0 false, 1 only text, 2 text + plots
-        mac_meta;       % data received from MAC layer
+        config_tx;      % data received from MAC layer
         phy_4_5;        % data from chapter 4 and 5
         
-        packet_data;    % results during packet generation
+        packet_data;    % intermediate results during packet decoding
     end
     
     methods
-        function obj = dect_tx(verbose_arg, mac_meta_arg)
+        function obj = dect_tx(verbose_arg, config_tx_arg)
             obj.verbose = verbose_arg;
-            obj.mac_meta = mac_meta_arg;
-            obj.phy_4_5 = lib_util.run_chapter_4_5(verbose_arg, mac_meta_arg);
+            obj.config_tx = config_tx_arg;
+            obj.phy_4_5 = lib_util.run_chapter_4_5(verbose_arg, config_tx_arg);
 
             obj.packet_data = [];
         end
@@ -45,14 +45,14 @@ classdef dect_tx < handle
             n_total_bits        = obj.phy_4_5.n_total_bits;
             n_spectrum_occupied = obj.phy_4_5.n_spectrum_occupied;
 
-            b                   = obj.mac_meta.b;
-            u                   = obj.mac_meta.u;
-            Z                   = obj.mac_meta.Z;
-            codebook_index      = obj.mac_meta.codebook_index;
-            network_id          = obj.mac_meta.network_id;
-            PLCF_type           = obj.mac_meta.PLCF_type;
-            rv                  = obj.mac_meta.rv;
-            oversampling        = obj.mac_meta.oversampling;
+            b                   = obj.config_tx.b;
+            u                   = obj.config_tx.u;
+            Z                   = obj.config_tx.Z;
+            codebook_index      = obj.config_tx.codebook_index;
+            network_id          = obj.config_tx.network_id;
+            PLCF_type           = obj.config_tx.PLCF_type;
+            rv                  = obj.config_tx.rv;
+            oversampling        = obj.config_tx.oversampling;
 
             physical_resource_mapping_PCC_cell = obj.phy_4_5.physical_resource_mapping_PCC_cell;
             physical_resource_mapping_PDC_cell = obj.phy_4_5.physical_resource_mapping_PDC_cell;
@@ -75,8 +75,8 @@ classdef dect_tx < handle
             
             % first we calculate complex samples for PCC and PDC
             % pcc_enc_dbg and pdc_enc_dbg contain debugging information            
-            [x_PCC, pcc_enc_dbg] = lib_7_Transmission_modes.PCC_encoding(PCC_user_bits, CL, precoding_identity_matrix);
-            [x_PDC, pdc_enc_dbg] = lib_7_Transmission_modes.PDC_encoding(PDC_user_bits,...
+            [x_PCC, pcc_enc_dbg] = lib_7_transmission_encoding.PCC_encoding(PCC_user_bits, CL, precoding_identity_matrix);
+            [x_PDC, pdc_enc_dbg] = lib_7_transmission_encoding.PDC_encoding(PDC_user_bits,...
                                                                             n_total_bits,...
                                                                             Z,...
                                                                             network_id,...
@@ -116,10 +116,10 @@ classdef dect_tx < handle
             end
             
             % we then map STF, DRS, PCC and PDC into those transmit stream matrices
-            transmit_streams = lib_7_Transmission_modes.subcarrier_mapping_STF(transmit_streams, physical_resource_mapping_STF_cell);
-            transmit_streams = lib_7_Transmission_modes.subcarrier_mapping_DRS(transmit_streams, physical_resource_mapping_DRS_cell);            
-            transmit_streams = lib_7_Transmission_modes.subcarrier_mapping_PCC(transmit_streams, physical_resource_mapping_PCC_cell, y_PCC_ts);
-            transmit_streams = lib_7_Transmission_modes.subcarrier_mapping_PDC(transmit_streams, physical_resource_mapping_PDC_cell, y_PDC_ts);
+            transmit_streams = lib_7_transmission_encoding.subcarrier_mapping_STF(transmit_streams, physical_resource_mapping_STF_cell);
+            transmit_streams = lib_7_transmission_encoding.subcarrier_mapping_DRS(transmit_streams, physical_resource_mapping_DRS_cell);            
+            transmit_streams = lib_7_transmission_encoding.subcarrier_mapping_PCC(transmit_streams, physical_resource_mapping_PCC_cell, y_PCC_ts);
+            transmit_streams = lib_7_transmission_encoding.subcarrier_mapping_PDC(transmit_streams, physical_resource_mapping_PDC_cell, y_PDC_ts);
             
             % Beamforming (N_eff_TX many), remember N_eff_TX = N_TS
             antenna_streams_mapped = lib_6_generic_procedures.Beamforming(transmit_streams, N_TX, codebook_index);

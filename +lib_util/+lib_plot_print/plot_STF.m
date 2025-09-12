@@ -63,4 +63,3 @@ function [] = plot_STF(samples_antenna_tx, u, N_b_DFT, oversampling)
 
     sgtitle('STF repetitive pattern');
 end
-

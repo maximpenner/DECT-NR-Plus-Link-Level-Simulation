@@ -53,4 +53,3 @@ function [] = plot_chestim(ch_estim, n_guards_bottom, n_guards_top)
         end
     end
 end
-

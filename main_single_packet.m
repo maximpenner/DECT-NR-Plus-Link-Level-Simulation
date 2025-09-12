@@ -17,7 +17,7 @@ mac_meta_tx.PacketLengthType = 0;                   % 0 for subslots, 1 for slot
 mac_meta_tx.PacketLength = 4;                       % min is 1, max is 16 according to Table 6.2.1-2a in part 4
 mac_meta_tx.tm_mode_0_to_11 = 0;                    % Table 7.2-1, mode determines whether transmission is closed loop or not, values range from 0 to 11
 mac_meta_tx.mcs_index = 5;                          % Table A-1 in part 3, values range from 0 to 11
-mac_meta_tx.Z = 6144;                               % 5.3 -> so far only Z=6144 fully supported, 2048 only at TX, RX missing (Matlab has no option for Z=2048 in LTE toolbox)
+mac_meta_tx.Z = 6144;                               % 5.3, maximum codeblock size
 mac_meta_tx.oversampling = 8;                       % By how much do we oversample our OFDM packet compared to critical sampling (insert zeros at spectrum edges before IFFT)?
 mac_meta_tx.codebook_index = 0;                     % 6.3.4, any value other than 0 makes packet beamformed, throws error if out of bound (depends on tm_mode_0_to_11)
 mac_meta_tx.PLCF_type = 1;                          % Type 1 is 40 bits, Type 2 is 80 bits

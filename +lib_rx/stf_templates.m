@@ -1,4 +1,4 @@
-function [STF_templates] = sync_STF_template(mac_meta_tx)
+function [STF_templates] = sync_STF_template(tx_config)
 
     %% We save STF template which are known at the receiver.
 
@@ -9,10 +9,9 @@ function [STF_templates] = sync_STF_template(mac_meta_tx)
     STF_templates.time_domain = cell(4,1);
     STF_templates.freq_domain = cell(4,1);
 
-    %% to generate the STF templates, we habe to put the transmitter into a specific mode
-    mac_meta_tx.PacketLengthType = 0;  % subslots
-    mac_meta_tx.PacketLength = 4;      % for some tx modes (with N_eff_TX >= 4) we need at least 20 OFDM symbols
-    mac_meta_tx.BF = false;            % disable beamforming
+    %% to generate the STF templates, we have to put the transmitter into a specific mode
+    tx_config.PacketLengthType = 0;  % subslots
+    tx_config.PacketLength = 4;      % for some tx modes (with N_eff_TX >= 4) we need at least 20 OFDM symbols
 
     %% one STF for each new number of effective TX antennas
     for N_eff_TX_idx=1:1:4
@@ -21,28 +20,30 @@ function [STF_templates] = sync_STF_template(mac_meta_tx)
         switch N_eff_TX_idx
             case 1
                 % mode with N_eff_TX = 1
-                mac_meta_tx.tm_mode_0_to_11 = 0;
+                tx_config.tm_mode_0_to_11 = 0;
             case 2
                 % mode with N_eff_TX = 2
-                mac_meta_tx.tm_mode_0_to_11 = 2;
+                tx_config.tm_mode_0_to_11 = 2;
             case 3
                 % mode with N_eff_TX = 4
-                mac_meta_tx.tm_mode_0_to_11 = 6;
+                tx_config.tm_mode_0_to_11 = 6;
             case 4
                 % mode with N_eff_TX = 8
-                mac_meta_tx.tm_mode_0_to_11 = 11;
+                tx_config.tm_mode_0_to_11 = 11;
         end
 
         %% create a dummy frame
+
+        tx_config.verbosity = 0;
         
         % create a dummy transmitter
-        tx_dummy = dect_tx(0, mac_meta_tx);
-        tx_dummy.mac_meta.codebook_index = 0;
+        tx_dummy = tx_t(tx_config);
+        tx_dummy.tx_config.codebook_index = 0;
 
         % PCC
-        if mac_meta_tx.PLCF_type == 1
+        if tx_config.PLCF_type == 1
             PCC_user_bits = randi([0 1], 40, 1);
-        elseif mac_meta_tx.PLCF_type == 2
+        elseif tx_config.PLCF_type == 2
             PCC_user_bits = randi([0 1], 80, 1);
         end
 
@@ -59,7 +60,7 @@ function [STF_templates] = sync_STF_template(mac_meta_tx)
         n_STF_samples = tx_dummy.phy_4_5.n_STF_samples;
 
         % with oversampling STF becomes longer
-        n_STF_samples = mac_meta_tx.oversampling * n_STF_samples;
+        n_STF_samples = tx_config.oversampling * n_STF_samples;
 
         % extract STF and save in cell
         STF_templates.time_domain(N_eff_TX_idx) = {samples_for_antenna(1:n_STF_samples, 1)};

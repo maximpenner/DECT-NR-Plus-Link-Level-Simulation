@@ -56,7 +56,7 @@ function [PDC_user_bits, PDC_harq_buf_report, pdc_dec_dbg] = PDC_decoding(x_PDC,
     %%
     % depends on Z
     if Z == 2048
-        [b,segErr] = lib_6_generic_procedures.Code_block_desegmentation_Z_2048(c, (N_TB_bits+24));
+        [b,segErr] = lib_6_generic_procedures.lib_cc_rm_i.Code_block_desegmentation_Z_2048(c, (N_TB_bits+24));
     elseif Z == 6144
         [b,segErr] = lteCodeBlockDesegment(c,(N_TB_bits+24));
     else
