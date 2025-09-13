@@ -56,7 +56,7 @@ function [wiener_weights_all_tx] = channel_estimation_wiener_weights(physical_re
                 
                 assert(numel(idx_pilots_used) == N_p_used);
                 
-                %% next we need to determine the correlation matrix between all used pilots
+                %% next we need to determine the correlation matrix between all pilots used
                 R_pp = zeros(N_p_used,N_p_used);
                 for ii = 1:1:N_p_used
                     
@@ -113,7 +113,6 @@ function [wiener_weights_all_tx] = channel_estimation_wiener_weights(physical_re
 
                 assert(abs(1 - sum(weights)) <= 1e-8);
 
-                % write back
                 wiener_weights_this_tx(i,j,idx_pilots_used) = weights;
             end
         end

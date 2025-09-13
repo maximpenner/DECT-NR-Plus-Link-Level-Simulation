@@ -1,4 +1,4 @@
-function [coarse_sync_idx] = coarse_peak_search(verbosity, ...
+function [coarse_peak_idx] = coarse_peak_search(verbosity, ...
                                                 pre_fft_config, ...
                                                 samples_antenna, ...
                                                 samples_antenna_required)
@@ -112,19 +112,19 @@ function [coarse_sync_idx] = coarse_peak_search(verbosity, ...
 
         % sync points are peak indices weighted by the height
         normalization = coarse_peak_height/sum(coarse_peak_height);
-        coarse_sync_idx = sum( coarse_peak_idx .* normalization);
-        coarse_sync_idx = floor(coarse_sync_idx);
+        coarse_peak_idx = sum( coarse_peak_idx .* normalization);
+        coarse_peak_idx = floor(coarse_peak_idx);
 
         % make sure all indexes are within range
-        if coarse_sync_idx <= 0
-            coarse_sync_idx = 1;
+        if coarse_peak_idx <= 0
+            coarse_peak_idx = 1;
         end
-        if coarse_sync_idx >= pre_fft_config.coarse_peak_search_length
-            coarse_sync_idx = pre_fft_config.coarse_peak_search_length;
+        if coarse_peak_idx >= pre_fft_config.coarse_peak_search_length
+            coarse_peak_idx = pre_fft_config.coarse_peak_search_length;
         end
 
-    % if we didn't find any packets, assume synchronization at 1
+    % if we didn't find any packets, assume the peak at 1
     else
-        coarse_sync_idx = 1;
+        coarse_peak_idx = 1;
     end
 end

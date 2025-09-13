@@ -1,21 +1,21 @@
 function [cfo_report] = cfo_integer(config, ...
-                                    samples_antenna_sto, ...
-                                    STO_templates_freq_domain, ...
+                                    samples_antenna_stf_at_coarse_peak_cfo_fractional, ...
+                                    STF_templates_freq_domain, ...
                                     N_b_DFT, ...
                                     oversampling)
 
     %% transform from time domain samples into frequency domain
 
     % remove cp
-    samples_antenna_sto_no_cp = samples_antenna_sto(config.n_samples_STF_cp_only_b_os + 1 : end, :);
+    stf_no_cp = samples_antenna_stf_at_coarse_peak_cfo_fractional(config.n_samples_STF_cp_only_b_os + 1 : end, :);
 
     % transform into frequency domain
-    samples_antenna_sto_freq_os = fft(samples_antenna_sto_no_cp);
-    samples_antenna_sto_freq_os = fftshift(samples_antenna_sto_freq_os, 1);
+    stf_freq_os = fft(stf_no_cp);
+    stf_freq_os = fftshift(stf_freq_os, 1);
 
     %% at this point, we don't know N_eff_TX yet, so we can use any STF template as we have to perform a simple power detection
 
-    STF_values_freq_domain = STO_templates_freq_domain{1};
+    STF_values_freq_domain = STF_templates_freq_domain{1};
 
     % Matlab saves mirrored version compared to DECT-2020 NR standard
     STF_values_freq_domain = flipud(STF_values_freq_domain);
@@ -29,14 +29,13 @@ function [cfo_report] = cfo_integer(config, ...
     %% now we have to test for each antenna, which integer CFO makes most sense
 
     % one metric value per possible integer CFO per RX antenna
-    N_RX = size(samples_antenna_sto, 2);
+    N_RX = size(samples_antenna_stf_at_coarse_peak_cfo_fractional, 2);
     metric = zeros(numel(config.integer.candidate_values), N_RX);
 
     % go over each rx antenna
     for i=1:1:N_RX
 
-        % we only need the STF symbol
-        STF_this_antenna = samples_antenna_sto_freq_os(:,i);
+        STF_this_antenna = stf_freq_os(:,i);
 
         % try for each possible frequency offset
         idx = 1;
@@ -55,7 +54,6 @@ function [cfo_report] = cfo_integer(config, ...
             % when cfo_candidate is positive, assume a positive integer CFO, so we have to push our STF towards low indices to compensate the CFO.
             STF_this_antenna_shifted = circshift(STF_this_antenna, -cfo_candidate);
 
-            % calculate metrix
             metric(idx, i) = sum(abs(STF_values_freq_domain .* conj(STF_this_antenna_shifted)));
 
             idx = idx+1;

@@ -1,4 +1,6 @@
-function [samples_antenna_sto_cfo, cfo_report] = cfo_fractional(samples_antenna_sto, n_STF_template, u)
+function [samples_antenna_stf_at_coarse_peak_cfo_fractional, cfo_fractional_report] = cfo_fractional(samples_antenna_stf_at_coarse_peak, ...
+                                                                                                     n_STF_template, ...
+                                                                                                     u)
     % SOURCES
     % Schmidl Cox: https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=650240
     % BLUE: https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=752907
@@ -18,16 +20,16 @@ function [samples_antenna_sto_cfo, cfo_report] = cfo_fractional(samples_antenna_
     oversampling = n_STF_template / (L*16);
 
     % revert STF cover sequence by applying it
-    samples_antenna_sto = lib_6_generic_procedures.STF_signal_cover_sequence(samples_antenna_sto, u, oversampling);
+    samples_antenna_stf_at_coarse_peak = lib_6_generic_procedures.STF_signal_cover_sequence(samples_antenna_stf_at_coarse_peak, u, oversampling);
     
     % number of samples in a single pattern repetition
     n_STF_pattern = n_STF_template/L;
     
     % get the size of the input packet
-    [n_samples_antenna_sto, N_RX] = size(samples_antenna_sto);
+    [n_samples_antenna_sto, N_RX] = size(samples_antenna_stf_at_coarse_peak);
 
     % output container
-    samples_antenna_sto_cfo = zeros(size(samples_antenna_sto));
+    samples_antenna_stf_at_coarse_peak_cfo_fractional = zeros(size(samples_antenna_stf_at_coarse_peak));
     
     % time base for CFO correction
     time_base = 0:1:(n_samples_antenna_sto-1);
@@ -40,7 +42,7 @@ function [samples_antenna_sto_cfo, cfo_report] = cfo_fractional(samples_antenna_
     for i=1:1:N_RX
         
         % extract the preamble as we have received it, perfect symbol synchronization is assumed
-        STF_found = samples_antenna_sto(1:n_STF_template, i);
+        STF_found = samples_antenna_stf_at_coarse_peak(1:n_STF_template, i);
 
         % SCHMIDL COX
         % Schmidl Cox assumes one OFDM symbol that consists of 2 equal halves.
@@ -61,11 +63,11 @@ function [samples_antenna_sto_cfo, cfo_report] = cfo_fractional(samples_antenna_
         P_total = P_total + P;
     end
 
-    cfo_report = cfo_from_p_SchmidlCox(P_total, n_STF_pattern);
+    cfo_fractional_report = cfo_from_p_SchmidlCox(P_total, n_STF_pattern);
     
     % derotate carrier frequency offset for each antenna with one common CFO estimation
     for i=1:1:N_RX
-        samples_antenna_sto_cfo(:,i) = samples_antenna_sto(:,i).*exp(1i*2*pi*(-cfo_report)*time_base);
+        samples_antenna_stf_at_coarse_peak_cfo_fractional(:,i) = samples_antenna_stf_at_coarse_peak(:,i).*exp(1i*2*pi*(-cfo_fractional_report)*time_base);
     end
 end
 
