@@ -30,4 +30,3 @@ function [N_TB_bits] = Transport_block_size(tm_mode, mcs, N_PDC_subc, Z)
         N_TB_bits = N_M - (C+1)*L;
     end
 end
-

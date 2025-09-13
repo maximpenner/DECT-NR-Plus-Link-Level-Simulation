@@ -1,4 +1,4 @@
-function [] = plot_chestim(ch_estim, n_guards_bottom, n_guards_top)
+function [] = plot_channel_estimation(ch_estim, n_guards_bottom, n_guards_top)
 
     N_RX = numel(ch_estim);
 
@@ -21,7 +21,7 @@ function [] = plot_chestim(ch_estim, n_guards_bottom, n_guards_top)
             % extract
             ch_estim_single_TS = ch_estim_single(:,:,j);
 
-            % preparte subplot
+            % prepare subplot
             subplot(N_RX, N_TS, (i-1)*N_TS + j);
             hold on;
 

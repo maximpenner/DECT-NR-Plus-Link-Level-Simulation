@@ -1,34 +1,25 @@
 function [y_PxC_ts] = Transmit_diversity_precoding(x_PxC_ss, N_TS)
-
-    % Technical Specification assumes first index is 0, matlab 1
-    MATLAB_INDEX_SHIFT = 1;
     
-    % sanity check
-    if ismember(N_TS, [2,4,8]) == false
-        error('For transmit diversity coding N_TS must be 2, 4 or 8.');
-    end
+    assert(ismember(N_TS, [2,4,8]));
     
     % always 98 elements in case of PCC
     x_PxC_ss = cell2mat(x_PxC_ss);
     n_x_PxC_ss = numel(x_PxC_ss);
     
-    % sanity check
-    if mod(n_x_PxC_ss,2) ~= 0
-        error('Number of PxC symbols in spatial stream is not a multiple of 2.');
-    end
+    assert(mod(n_x_PxC_ss,2) == 0);
     
     % how many pairs of symbols do we have?, see 6.3.3.2
     i_max = n_x_PxC_ss/2;
     
     % modulo according to Table 6.3.3.2-1 to 6.3.3.2-3
-    switch N_TS
-        case 2
-            modulo = 1;
-        case 4
-            modulo = 6;
-        case 8
-            modulo = 12;
-    end
+    % switch N_TS
+    %     case 2
+    %         modulo = 1;
+    %     case 4
+    %         modulo = 6;
+    %     case 8
+    %         modulo = 12;
+    % end
     
     % create vector of pairs (split real and imag) as shown in 6.3.3.2
     x_PxC_real = reshape(real(x_PxC_ss), 2, i_max);
@@ -53,28 +44,28 @@ function [y_PxC_ts] = Transmit_diversity_precoding(x_PxC_ss, N_TS)
     y_PxC_ts = reshape(y_PxC_ts,[],row);
     y_PxC_ts = y_PxC_ts.';
 
-%     % compatible, but much slower code
-%     if 1==1
-%         % preallocate output
-%         y_PxC_ts_check = zeros(2*N_TS,i_max);        
-%         
-%         % symbol by symbol
-%         for i=0:1:i_max-1
-% 
-%             % load correct Y matrix
-%             i_mod = mod(i,modulo);
-%             Y_mod = Y(:,:,i_mod+MATLAB_INDEX_SHIFT);
-% 
-%             % multiply
-%             i_matlab = i + MATLAB_INDEX_SHIFT;
-%             y_PxC_ts_check(:,i_matlab) = Y_mod*pair_of_symbols_vec(:,i_matlab);
-%         end
-%         
-%         diff = abs(y_PxC_ts - y_PxC_ts_check);
-%         if max(diff) > 10e-6
-%             error('y_PcX not equal.');
-%         end
-%     end
+    % % compatible, but much slower code
+    % if 1==1
+    %     % preallocate output
+    %     y_PxC_ts_check = zeros(2*N_TS,i_max);        
+    % 
+    %     % symbol by symbol
+    %     for i=0:1:i_max-1
+    % 
+    %         % load correct Y matrix
+    %         i_mod = mod(i,modulo);
+    %         Y_mod = Y(:,:,i_mod+MATLAB_INDEX_SHIFT);
+    % 
+    %         % multiply
+    %         i_matlab = i + MATLAB_INDEX_SHIFT;
+    %         y_PxC_ts_check(:,i_matlab) = Y_mod*pair_of_symbols_vec(:,i_matlab);
+    %     end
+    % 
+    %     diff = abs(y_PxC_ts - y_PxC_ts_check);
+    %     if max(diff) > 10e-6
+    %         error('y_PcX not equal.');
+    %     end
+    % end
     
     % rearrange output and convert to cell
     switch N_TS
@@ -130,4 +121,3 @@ function [y_PxC_ts] = Transmit_diversity_precoding(x_PxC_ss, N_TS)
             y_PxC_ts = {y_PxC_TS_0; y_PxC_TS_1; y_PxC_TS_2; y_PxC_TS_3; y_PxC_TS_4; y_PxC_TS_5; y_PxC_TS_6; y_PxC_TS_7};
     end 
 end
-

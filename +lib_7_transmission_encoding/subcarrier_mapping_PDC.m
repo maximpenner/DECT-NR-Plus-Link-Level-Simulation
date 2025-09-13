@@ -9,7 +9,7 @@ function [transmit_streams] = subcarrier_mapping_PDC(transmit_streams, physical_
     N_TS = numel(transmit_streams);
     N_b_DFT = size(cell2mat(transmit_streams(1)),1);
 
-    % get ofdm symbol indices, last element, same for each spatial stream
+    % get OFDM symbol indices, last element, same for each spatial stream
     l_vec = cell2mat(physical_resource_mapping_PDC_cell(end-1));
 
     % loop over each spatial stream
@@ -21,7 +21,7 @@ function [transmit_streams] = subcarrier_mapping_PDC(transmit_streams, physical_
         % extract PDC values for this particular transmit stream
         x_PDC_stream = cell2mat(y_PDC(i));
 
-        % loop over each relevant ofdm symbol
+        % loop over each relevant OFDM symbol
         consumed_stream = 0;
         for j=1:1:numel(l_vec)
 
@@ -39,10 +39,7 @@ function [transmit_streams] = subcarrier_mapping_PDC(transmit_streams, physical_
             consumed_stream = consumed_stream + n_subc;
         end
         
-        % sanity check
-        if consumed_stream ~= numel(x_PDC_stream)
-            error('Not all symbols of PDC used.');
-        end        
+        assert(consumed_stream == numel(x_PDC_stream));
         
         % add used samples
         consumed = consumed + consumed_stream;
@@ -51,9 +48,5 @@ function [transmit_streams] = subcarrier_mapping_PDC(transmit_streams, physical_
         transmit_streams(i) = {some_transmit_stream};
     end
 
-    % sanity check
-    if consumed ~= numel(cell2mat(y_PDC))
-        error('Not all symbols of PDC used.');
-    end
+    assert(consumed == numel(cell2mat(y_PDC)));
 end
-

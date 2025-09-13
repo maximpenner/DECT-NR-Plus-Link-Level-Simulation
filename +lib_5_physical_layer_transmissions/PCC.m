@@ -7,9 +7,9 @@
 %       physical_resource_mapping_PCC_cell(2,1)
 %       physical_resource_mapping_PCC_cell(3,1)
 %       ...
-%       physical_resource_mapping_PCC_cell(x-1,1) contain subcarrier indices for all ofdm symbols where the PCC is placed
+%       physical_resource_mapping_PCC_cell(x-1,1) contain subcarrier indices for all OFDM symbols where the PCC is placed
 %
-%       physical_resource_mapping_PCC_cell(1,x) containes the corresponding ofdm symbol indices
+%       physical_resource_mapping_PCC_cell(1,x) contains the corresponding OFDM symbol indices
 %
 %       physical_resource_mapping_PCC_cell(1,x) contains linear indices for fast demapping
 %
@@ -22,9 +22,12 @@
 %            {42×1 double}    {56×1 double}    {1×2 double}
 %
 %
-function [physical_resource_mapping_PCC_cell] = PCC(numerology, k_b_OCC, N_TS, N_PACKET_symb,...
-                                                        physical_resource_mapping_STF_cell,...
-                                                        physical_resource_mapping_DRS_cell)
+function [physical_resource_mapping_PCC_cell] = PCC(numerology, ...
+                                                    k_b_OCC, ...
+                                                    N_TS, ...
+                                                    N_PACKET_symb, ...
+                                                    physical_resource_mapping_STF_cell, ...
+                                                    physical_resource_mapping_DRS_cell)
 
     % Technical Specification assumes first index is 0, matlab 1
     MATLAB_INDEX_SHIFT = 1;
@@ -33,10 +36,10 @@ function [physical_resource_mapping_PCC_cell] = PCC(numerology, k_b_OCC, N_TS, N
     N_b_DFT = numerology.N_b_DFT;    
     
     % to use the algorithm for PCC, we write all STF and DRS into one matrix of the size of the frame
-    [~, mat_STF_DRS_all_streams] = lib_util.matrix_STF_DRS_PCC_PDC(N_b_DFT, N_PACKET_symb, N_TS, [],...
-                                                                    physical_resource_mapping_STF_cell,...
-                                                                    physical_resource_mapping_DRS_cell,...
-                                                                    [],...
+    [~, mat_STF_DRS_all_streams] = lib_util.matrix_STF_DRS_PCC_PDC(N_b_DFT, N_PACKET_symb, N_TS, [], ...
+                                                                    physical_resource_mapping_STF_cell, ...
+                                                                    physical_resource_mapping_DRS_cell, ...
+                                                                    [], ...
                                                                     []);
 
 
@@ -52,14 +55,14 @@ function [physical_resource_mapping_PCC_cell] = PCC(numerology, k_b_OCC, N_TS, N
     %   PCC in mapped into first spatial stream
     %
     %   number of rows: always 1
-    %   first cell:     subcarrier indices for one ofdm symbol
-    %   second cell:    subcarrier indices for one ofdm symbol
-    %   third cell:     subcarrier indices for one ofdm symbol
+    %   first cell:     subcarrier indices for one OFDM symbol
+    %   second cell:    subcarrier indices for one OFDM symbol
+    %   third cell:     subcarrier indices for one OFDM symbol
     %   ...
-    %   last cell:      indices of all aforementioned ofdm symbols (see ofdm_symbol_indices)
+    %   last cell:      indices of all aforementioned OFDM symbols (see OFDM_symbol_indices)
     %    
     physical_resource_mapping_PCC_cell = cell(0);
-    ofdm_symbol_indices = [];
+    OFDM_symbol_indices = [];
     
     % counter for found PDC subcarriers
     cnt_PCC_subc = 0;    
@@ -78,7 +81,7 @@ function [physical_resource_mapping_PCC_cell] = PCC(numerology, k_b_OCC, N_TS, N
         
         U = numel(k_i);
         
-        % no free subcarriers in this symbol, move to next ofdm symbol
+        % no free subcarriers in this symbol, move to next OFDM symbol
         if U == 0
             l = l + 1;
             continue;
@@ -111,36 +114,36 @@ function [physical_resource_mapping_PCC_cell] = PCC(numerology, k_b_OCC, N_TS, N
         % sort from lowest subcarrier to highest
         k_PCC_l = sort(k_PCC_l);
 
-        % append subcarriers for this ofdm symbol
+        % append subcarriers for this OFDM symbol
         physical_resource_mapping_PCC_cell = [physical_resource_mapping_PCC_cell {k_PCC_l}];
         cnt_PCC_subc = cnt_PCC_subc + numel(k_PCC_l);
         
-        % remember current ofdm symbol
-        ofdm_symbol_indices = [ofdm_symbol_indices, l];
+        % remember current OFDM symbol
+        OFDM_symbol_indices = [OFDM_symbol_indices, l];
         
         % do while loop exit condition: we have found more subcarriers in this symbol (U) than we still need (N_unalloc_subc)
         if U >= N_unalloc_subc
             break;
         end
         
-        % we have added some more subcarriers in this symbol, so we reduce the number of subcarriers required in the next ofdm symbol
+        % we have added some more subcarriers in this symbol, so we reduce the number of subcarriers required in the next OFDM symbol
         N_unalloc_subc = N_unalloc_subc - U;
         
-        % move to next of ofdm symbol
+        % move to next of OFDM symbol
         l = l + 1;
     end
     
     %% create a vector with linear indices
     linear_indices_matlab = zeros(cnt_PCC_subc, 1);
     idx = 1;
-    for i=1:1:numel(ofdm_symbol_indices)
+    for i=1:1:numel(OFDM_symbol_indices)
         
         k_i = cell2mat(physical_resource_mapping_PCC_cell(i));
         n_k_i = numel(k_i);
         
         % linear indices
         rows = lib_util.index_conversion_TS_matlab(N_b_DFT,k_i);
-        cols = repmat(ofdm_symbol_indices(i) + MATLAB_INDEX_SHIFT, numel(k_i), 1);
+        cols = repmat(OFDM_symbol_indices(i) + MATLAB_INDEX_SHIFT, numel(k_i), 1);
         li_matlab = sub2ind([N_b_DFT N_PACKET_symb], rows, cols);
         
         linear_indices_matlab(idx : idx + n_k_i - 1) = li_matlab;
@@ -148,12 +151,8 @@ function [physical_resource_mapping_PCC_cell] = PCC(numerology, k_b_OCC, N_TS, N
         idx = idx + n_k_i;
     end  
     
-    % sanity check
-    if idx-1 ~= cnt_PCC_subc || idx-1 ~= 98
-        error('Incorrect number of linear indices.');
-    end    
+    assert(idx-1 == cnt_PCC_subc && idx-1 == 98);
     
     % write result
-    physical_resource_mapping_PCC_cell = [physical_resource_mapping_PCC_cell {ofdm_symbol_indices} {linear_indices_matlab}];    
+    physical_resource_mapping_PCC_cell = [physical_resource_mapping_PCC_cell {OFDM_symbol_indices} {linear_indices_matlab}];    
 end
-

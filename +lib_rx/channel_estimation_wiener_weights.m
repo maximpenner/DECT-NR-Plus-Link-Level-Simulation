@@ -1,12 +1,12 @@
-function [wiener_weights_all_tx] = channel_estimation_wiener_weights(   physical_resource_mapping_DRS_cell, ...
-                                                                        N_closest_DRS_pilots, ...
-                                                                        N_b_DFT, ...
-                                                                        N_PACKET_symb, ...
-                                                                        N_b_CP, ...
-                                                                        samp_rate, ...
-                                                                        noise_estim, ...
-                                                                        f_d_hertz, ...
-                                                                        tau_rms_sec)
+function [wiener_weights_all_tx] = channel_estimation_wiener_weights(physical_resource_mapping_DRS_cell, ...
+                                                                     N_closest_DRS_pilots, ...
+                                                                     N_b_DFT, ...
+                                                                     N_PACKET_symb, ...
+                                                                     N_b_CP, ...
+                                                                     samp_rate, ...
+                                                                     noise_estim, ...
+                                                                     f_d_hertz, ...
+                                                                     tau_rms_sec)
     % frame parameters
     T_s_sec = 1/samp_rate;                      % sample time in seconds
     T_symb_sec = T_s_sec * (N_b_DFT + N_b_CP);  % length of symbol (CP included) in seconds
@@ -41,7 +41,7 @@ function [wiener_weights_all_tx] = channel_estimation_wiener_weights(   physical
         % go over each subcarrier ...
         for i = 1:1:N_b_DFT
 
-            % ... in each ofdm symbol
+            % ... in each OFDM symbol
             for j = 1:1:N_PACKET_symb
                 
                 % get distances in tf lattice
@@ -54,12 +54,9 @@ function [wiener_weights_all_tx] = channel_estimation_wiener_weights(   physical
                 % find indices of closest pilots
                 [~,idx_pilots_used] = mink(distances, N_closest_DRS_pilots);
                 
-                % sanity check
-                if numel(idx_pilots_used) ~= N_p_used
-                    error('Incorrect number of pilots used for wiener filtering.');
-                end
+                assert(numel(idx_pilots_used) == N_p_used);
                 
-                %% next we need to determine the correlation matrix between all used pilots
+                %% next we need to determine the correlation matrix between all pilots used
                 R_pp = zeros(N_p_used,N_p_used);
                 for ii = 1:1:N_p_used
                     
@@ -114,12 +111,8 @@ function [wiener_weights_all_tx] = channel_estimation_wiener_weights(   physical
                 % normalize, each channel coefficient has an expectation value of 1
                 weights = weights/sum(weights);
 
-                % sanity check
-                if abs(1 - sum(weights)) > 1e-8
-                    error('Weights are not close enough to 1.');
-                end
+                assert(abs(1 - sum(weights)) <= 1e-8);
 
-                % write back
                 wiener_weights_this_tx(i,j,idx_pilots_used) = weights;
             end
         end
@@ -138,4 +131,3 @@ end
 function correlation = r_f(tau_rms_sec, delta_f)
     correlation = 1/(1 + 1i * 2 * pi * tau_rms_sec * delta_f);
 end
-

@@ -1,8 +1,8 @@
-function antenna_streams_mapped_rev_cfo = post_fft_cfo_residual(    antenna_streams_mapped_rev,...
-                                                                physical_resource_mapping_DRS_cell,...
-                                                                physical_resource_mapping_STF_cell,...
-                                                                N_RX,...
-                                                                N_eff_TX)
+function antenna_streams_mapped_rev_cfo = cfo_residual(antenna_streams_mapped_rev, ...
+                                                       physical_resource_mapping_DRS_cell, ...
+                                                       physical_resource_mapping_STF_cell, ...
+                                                       N_RX, ...
+                                                       N_eff_TX)
    
     % we need the dimensions of the packet
     [N_b_DFT, N_PACKET_symb] = size(cell2mat(antenna_streams_mapped_rev(1)));
@@ -59,13 +59,13 @@ function antenna_streams_mapped_rev_cfo = post_fft_cfo_residual(    antenna_stre
         % received
         y_STF = transmit_streams_rev_i(STF_linear_indices_matlab);
 
-        % equation (8) from https://openofdm.readthedocs.io/en/latest/_downloads/vtc04_freq_offset.pdf
+        % equation (8) from https://openOFDM.readthedocs.io/en/latest/_downloads/vtc04_freq_offset.pdf
         weighted_STF = STF_values.*conj(y_STF);
 
         % this line can be used to debug the angle
         %angles_STF = get_wrapped_angles_in_deg(weighted_STF);
 
-        % equation (8) from https://openofdm.readthedocs.io/en/latest/_downloads/vtc04_freq_offset.pdf
+        % equation (8) from https://openOFDM.readthedocs.io/en/latest/_downloads/vtc04_freq_offset.pdf
         %STF_pilot_value_product = sum(weighted_STF);
 
         % at each rx antenna we receive DRS symbols from each tx antenna
@@ -85,13 +85,13 @@ function antenna_streams_mapped_rev_cfo = post_fft_cfo_residual(    antenna_stre
 
             %% get the angle per symbol
 
-            % equation (8) from https://openofdm.readthedocs.io/en/latest/_downloads/vtc04_freq_offset.pdf
+            % equation (8) from https://openOFDM.readthedocs.io/en/latest/_downloads/vtc04_freq_offset.pdf
             weighted_DRS = repmat(DRS_values,1, n_DRS_symbols).*conj(y_DRS);
 
             % this line can be used to debug the angle
             %angles_DRS = get_wrapped_angles_in_deg(weighted_DRS);
 
-            % equation (8) from https://openofdm.readthedocs.io/en/latest/_downloads/vtc04_freq_offset.pdf
+            % equation (8) from https://openOFDM.readthedocs.io/en/latest/_downloads/vtc04_freq_offset.pdf
             %DRS_pilot_value_product = sum(weighted_DRS, 1);
 
             %% do no average across subcarriers just yet, instead determine the angle change in time domain
@@ -143,21 +143,18 @@ function antenna_streams_mapped_rev_cfo = post_fft_cfo_residual(    antenna_stre
             n_OFDM_symbols_after_last_DRS_symbol = n_OFDM_symbols_after_last_DRS_symbol + 1;
         end
 
-        % constuct matrix
+        % construct matrix
         derotation_mat = [  0, ...                                                                                              % first symbol is not derotated
                             symbol_2_symbol_angles_normalized(1), ...                                                           % second symbol is deroteted with the angle from STF to first DRS symbols
                             repelem(symbol_2_symbol_angles_normalized(2:end), STF_and_DRS_symbol_2_symbol_spacing(2:end)), ...  % repeat the phase rotations
                             ones(1, n_OFDM_symbols_after_last_DRS_symbol)*symbol_2_symbol_angles_normalized(end)];              % symbols after the last DRS symbol
 
-        % sanity check
-        if numel(derotation_mat) ~= N_PACKET_symb
-            error("Incorrect number of derotation matrix values.");
-        end
+        assert(numel(derotation_mat) == N_PACKET_symb);
 
         % this line can be used to debug the angle
         %angles_derotation_mat = rad2deg(derotation_mat);
     
-        % of course, the derotation angle from with OFDM symbolss
+        % of course, the derotation angle from with OFDM symbols
         derotation_mat = cumsum(derotation_mat);
     
         %% create derotation matrix and derotate
@@ -168,4 +165,3 @@ function antenna_streams_mapped_rev_cfo = post_fft_cfo_residual(    antenna_stre
         antenna_streams_mapped_rev_cfo(i) = {transmit_streams_rev_i.*derotation_mat};
     end
 end
-

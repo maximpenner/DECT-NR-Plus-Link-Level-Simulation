@@ -25,4 +25,3 @@ function [transmit_streams] = subcarrier_mapping_STF(transmit_streams, physical_
     % replace
     transmit_streams(1) = {first_transmit_stream};
 end
-

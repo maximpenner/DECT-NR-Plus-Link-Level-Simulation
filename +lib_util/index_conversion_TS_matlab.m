@@ -15,4 +15,3 @@
 function [k_i_matlab] = index_conversion_TS_matlab(N_b_DFT, k_i)
     k_i_matlab = N_b_DFT/2 - k_i;
 end
-

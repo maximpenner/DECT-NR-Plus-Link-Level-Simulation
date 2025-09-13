@@ -9,4 +9,3 @@ function [numberWrapped] = wrap2_range(numberToBeWrapped, start, limit)
 
     numberWrapped = start + mod(numberToBeWrapped - start, limit-start);
 end
-

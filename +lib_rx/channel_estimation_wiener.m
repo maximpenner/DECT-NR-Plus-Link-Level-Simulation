@@ -1,4 +1,8 @@
-function [ch_estim] = channel_estimation_wiener(antenna_streams_mapped_rev, physical_resource_mapping_DRS_cell, wiener, N_RX, N_eff_TX)
+function [ch_estim] = channel_estimation_wiener(antenna_streams_mapped_rev, ...
+                                                physical_resource_mapping_DRS_cell, ...
+                                                wiener, ...
+                                                N_RX, ...
+                                                N_eff_TX)
 
     % we need the size of the packet
     [N_b_DFT, N_PACKET_symb] = size(cell2mat(antenna_streams_mapped_rev(1)));
@@ -41,4 +45,3 @@ function [ch_estim] = channel_estimation_wiener(antenna_streams_mapped_rev, phys
         ch_estim(i) = {ch_estim_i};
     end
 end
-

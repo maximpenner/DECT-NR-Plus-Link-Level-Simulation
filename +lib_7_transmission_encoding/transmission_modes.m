@@ -87,4 +87,3 @@ function [t_modes] = transmission_modes(tm_mode_0_to_11)
     t_modes.N_TS = N_TS;
     t_modes.N_TX = N_TX;    
 end
-

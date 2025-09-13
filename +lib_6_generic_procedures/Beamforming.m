@@ -24,28 +24,28 @@ function [antenna_streams] = Beamforming(transmit_streams, N_TX, codebook_index)
         antenna_streams_mat(:,:,i) = sum(W_ .* transmit_streams_mat,3);
     end
     
-%     % compatible, but much slower code
-%     if 1== 1
-%         antenna_streams_mat_check = zeros(N_b_DFT, N_PACKET_symb, N_TX);
-%         
-%         % go over each symbol and each subcarrier
-%         for i=1:1:N_PACKET_symb
-%             for j=1:1:N_b_DFT
-% 
-%                 % 6.3.4
-%                 y_N_TS = reshape(transmit_streams_mat(j,i,:), N_TS, 1);
-%                 z_N_TX = W * y_N_TS;
-% 
-%                 % write into output matrix
-%                 antenna_streams_mat_check(j,i,:) = z_N_TX;
-%             end
-%         end
-%         
-%         diff = abs(antenna_streams_mat - antenna_streams_mat_check);
-%         if max(max(max(diff))) > 10e-6
-%             error('y_PcX not equal.');
-%         end
-%     end
+    % % compatible, but much slower code
+    % if 1== 1
+    %     antenna_streams_mat_check = zeros(N_b_DFT, N_PACKET_symb, N_TX);
+    % 
+    %     % go over each symbol and each subcarrier
+    %     for i=1:1:N_PACKET_symb
+    %         for j=1:1:N_b_DFT
+    % 
+    %             % 6.3.4
+    %             y_N_TS = reshape(transmit_streams_mat(j,i,:), N_TS, 1);
+    %             z_N_TX = W * y_N_TS;
+    % 
+    %             % write into output matrix
+    %             antenna_streams_mat_check(j,i,:) = z_N_TX;
+    %         end
+    %     end
+    % 
+    %     diff = abs(antenna_streams_mat - antenna_streams_mat_check);
+    %     if max(max(max(diff))) > 10e-6
+    %         error('y_PcX not equal.');
+    %     end
+    % end
     
     % convert output to cells
     antenna_streams = cell(N_TX,1);
@@ -53,5 +53,3 @@ function [antenna_streams] = Beamforming(transmit_streams, N_TX, codebook_index)
         antenna_streams(i) = {antenna_streams_mat(:,:,i)};
     end
 end
-
-

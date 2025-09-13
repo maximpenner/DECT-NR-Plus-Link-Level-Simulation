@@ -9,4 +9,3 @@ function [] = clear_directory(directory_path)
         delete(full_filepath);
     end
 end
-

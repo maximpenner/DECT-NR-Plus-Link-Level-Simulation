@@ -30,11 +30,11 @@
 %       physical_resource_mapping_PCC_cell can be left empty
 %       physical_resource_mapping_PDC_cell can be left empty
 %
-function [mat_STF_DRS_PCC_PDC, mat_STF_DRS_PCC_PDC_all_streams] = matrix_STF_DRS_PCC_PDC(N_b_DFT, N_PACKET_symb, N_TS, N_SS,...
-                                                                                            physical_resource_mapping_STF_cell,...
-                                                                                            physical_resource_mapping_DRS_cell,...
-                                                                                            physical_resource_mapping_PCC_cell,...
-                                                                                            physical_resource_mapping_PDC_cell)
+function [mat_STF_DRS_PCC_PDC, mat_STF_DRS_PCC_PDC_all_streams] = matrix_STF_DRS_PCC_PDC(N_b_DFT, N_PACKET_symb, N_TS, N_SS, ...
+                                                                                         physical_resource_mapping_STF_cell, ...
+                                                                                         physical_resource_mapping_DRS_cell, ...
+                                                                                         physical_resource_mapping_PCC_cell, ...
+                                                                                         physical_resource_mapping_PDC_cell)
 
     % Technical Specification assumes first index is 0, matlab 1
     MATLAB_INDEX_SHIFT = 1;
@@ -79,7 +79,7 @@ function [mat_STF_DRS_PCC_PDC, mat_STF_DRS_PCC_PDC_all_streams] = matrix_STF_DRS
 
         for q = 1:1:numel(l_vec)
 
-            % extract single ofdm symbol
+            % extract single OFDM symbol
             l = l_vec(q);
             k_i = k_i_vec(:, q);
             
@@ -106,7 +106,7 @@ function [mat_STF_DRS_PCC_PDC, mat_STF_DRS_PCC_PDC_all_streams] = matrix_STF_DRS
 
         for q = 1:1:numel(l_vec)
 
-            % extract single ofdm symbol
+            % extract single OFDM symbol
             l = l_vec(q);
             k_i = cell2mat(physical_resource_mapping_PCC_cell(1,q));
 
@@ -136,7 +136,7 @@ function [mat_STF_DRS_PCC_PDC, mat_STF_DRS_PCC_PDC_all_streams] = matrix_STF_DRS
 
             for q = 1:1:numel(l_vec)
 
-                % extract single ofdm symbol
+                % extract single OFDM symbol
                 l = l_vec(q);
                 k_i = cell2mat(physical_resource_mapping_PDC_cell(1,q));
 
@@ -158,10 +158,5 @@ function [mat_STF_DRS_PCC_PDC, mat_STF_DRS_PCC_PDC_all_streams] = matrix_STF_DRS
         mat_STF_DRS_PCC_PDC_all_streams = mat_STF_DRS_PCC_PDC_all_streams + cell2mat(mat_STF_DRS_PCC_PDC(i));
     end
 
-    %% sanity check
-    % there should be 0, 1, 2, 3 and N_SS*4
-    if setdiff(unique(mat_STF_DRS_PCC_PDC_all_streams),[0,1,2,3,N_SS*4]) ~= 0
-        error('Two types of subcarriers collide.');
-    end
+    assert(isempty(setdiff(unique(mat_STF_DRS_PCC_PDC_all_streams),[0,1,2,3,N_SS*4])));
 end
-

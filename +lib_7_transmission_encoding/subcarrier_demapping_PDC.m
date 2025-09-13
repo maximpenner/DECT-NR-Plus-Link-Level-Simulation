@@ -16,4 +16,3 @@ function [x_PDC_rev] = subcarrier_demapping_PDC(any_cell_with_single_matrix, phy
         x_PDC_rev = any_mat_2d(linear_indices_matlab,:);
     end
 end
-

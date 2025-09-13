@@ -431,4 +431,3 @@ function [Y, idx, prefactor] = Transmit_diversity_precoding_Y(N_TS)
             idx(24,:) = idx11;
     end
 end
-

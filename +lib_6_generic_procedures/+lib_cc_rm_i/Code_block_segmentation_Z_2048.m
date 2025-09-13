@@ -6,9 +6,7 @@ function [c_r] = Code_block_segmentation_Z_2048(b)
     
     B = numel(b);
 
-    if B <= 0
-        error('Unsupported block length');
-    end
+    assert(B > 0, 'Unsupported block length');
 
     supported_values_of_K = [40:8:511,512:16:1023,1024:32:2047,2048:64:6144];
 
@@ -48,10 +46,7 @@ function [c_r] = Code_block_segmentation_Z_2048(b)
 
     F = C_plus*K_plus + C_minus*K_minus - B_prime;
     
-    % sanity check
-    if F ~= 0
-        error('We should need no Filler bits, but we need %d.', F);
-    end
+    assert(F == 0);
 
     c_r = cell(1,C);
     for r = 0:C-1
@@ -74,10 +69,7 @@ function [c_r] = Code_block_segmentation_Z_2048(b)
         if C>1
             a_r = c_r{r+1}(1:K_r(r+1)-L);
             
-            % sanity check
-            if sum(isnan(a_r)) > 0
-                error('There are NANs in a_r.');
-            end            
+            assert(sum(isnan(a_r)) == 0);
             
             a_r(isnan(a_r)) = 0;
 
@@ -100,4 +92,3 @@ function [c_r] = Code_block_segmentation_Z_2048(b)
         c_r(r+1) = {temp};
     end
 end
-

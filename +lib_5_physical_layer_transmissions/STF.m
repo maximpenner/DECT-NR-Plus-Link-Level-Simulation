@@ -5,7 +5,7 @@
 %
 %       physical_resource_mapping_STF_cell(1,1) contains the subcarrier indices as described in 5.2.2
 %
-%       physical_resource_mapping_STF_cell(1,2) contains the ofdm symbol index where the STF is placed, always 0    
+%       physical_resource_mapping_STF_cell(1,2) contains the OFDM symbol index where the STF is placed, always 0    
 %
 %       physical_resource_mapping_STF_cell(1,3) contains the values for each corresponding subcarriers
 %
@@ -46,18 +46,18 @@ function [physical_resource_mapping_STF_cell] = STF(numerology, k_b_OCC, N_eff_T
     physical_resource_mapping_STF_cell(1,2) = {0};
     
     % base sequences
-%     y_0_b1 = [-1i, -1i, -1, -1, 1i, -1i, 1i,...
-%               -1i, -1i, 1i, 1i, -1, -1i, -1];
-%     y_0_b2 = [1,-1,1,1,1,-1,1,1,1,1,-1,-1,1,-1,1,1,1,-1,1,1,-1,1,1,1,1,-1,1,-1];
-%     y_0_b4 = [y_0_b2, y_0_b2];
-%     y_0_b8 = [y_0_b4, y_0_b4];
-%     y_0_b12 = [y_0_b4, y_0_b4, y_0_b4];
-%     y_0_b16 = [y_0_b8, y_0_b8];
+    % y_0_b1 = [-1i, -1i, -1, -1, 1i, -1i, 1i, ...
+    %           -1i, -1i, 1i, 1i, -1, -1i, -1];
+    % y_0_b2 = [1,-1,1,1,1,-1,1,1,1,1,-1,-1,1,-1,1,1,1,-1,1,1,-1,1,1,1,1,-1,1,-1];
+    % y_0_b4 = [y_0_b2, y_0_b2];
+    % y_0_b8 = [y_0_b4, y_0_b4];
+    % y_0_b12 = [y_0_b4, y_0_b4, y_0_b4];
+    % y_0_b16 = [y_0_b8, y_0_b8];
 
     % base sequences update from ETSI TS 103 636-3 V1.4.1 (2023-01)
     y_0_b1 = exp(1i*pi/4) * [1, -1,1,1, -1,1,1, -1,1,1,1, -1, -1, -1];
     y_0_b2 = exp(1i*pi/4) * [-1,1, -1,1,1, -1,1,1, -1,1,1,1, -1,1, -1, -1, -1,1, -1, -1, -1,1,1,1, -1, -1, -1, -1];
-    y_0_b4 = exp(1i*pi/4) * [-1, -1, -1, 1, -1, 1, -1, -1, 1, 1, 1, 1, -1, 1, -1, -1, -1, 1, -1, 1, 1, -1, -1, -1, -1, -1, 1, -1,...
+    y_0_b4 = exp(1i*pi/4) * [-1, -1, -1, 1, -1, 1, -1, -1, 1, 1, 1, 1, -1, 1, -1, -1, -1, 1, -1, 1, 1, -1, -1, -1, -1, -1, 1, -1, ...
         1, 1, 1, -1, 1, -1, 1, 1, -1, -1, -1, -1, 1, -1, -1, -1, -1, 1, -1, 1, 1, -1, -1, -1, -1, -1, 1, -1];
 
     y_0_b4_r = (2*mod(1:numel(y_0_b4),2) - 1) .* fliplr(y_0_b4);
@@ -91,4 +91,3 @@ function [physical_resource_mapping_STF_cell] = STF(numerology, k_b_OCC, N_eff_T
     %% create output variables (complex transpose .')
     physical_resource_mapping_STF_cell(1,3) = {y_STF_0_i.'};
 end
-
