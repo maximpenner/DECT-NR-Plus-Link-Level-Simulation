@@ -340,7 +340,7 @@ classdef rx_t < matlab.mixin.Copyable
             tx_power_measurement = sum(abs(tx_power_measurement).^2)/numel(tx_power_measurement);
 
             if numel(obj.packet_data.x_PDC_rev) == 0
-                sinr = NaN
+                sinr = NaN;
                 return;
             end
 

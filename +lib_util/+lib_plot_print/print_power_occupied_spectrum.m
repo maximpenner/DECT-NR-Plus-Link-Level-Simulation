@@ -1,4 +1,4 @@
-function [] = print_power(antenna_streams_mapped, n_spectrum_occupied, samples_antenna_tx, n_STF_samples)
+function [] = print_power_occupied_spectrum(antenna_streams_mapped, n_spectrum_occupied, samples_antenna_tx, n_STF_samples)
 
     % what is the power in time domain across all antennas?
     n_samples = size(samples_antenna_tx,1);
@@ -20,7 +20,7 @@ function [] = print_power(antenna_streams_mapped, n_spectrum_occupied, samples_a
     % show info
     disp('##### TX Packet ######');
     fprintf('Total power across all antennas in t domain:        %f\n', power_across_all_antennas_t_domain);
-    fprintf('Total power of STF across all antennas in t domain: %f\n\n', power_stf_across_all_antennas_t_domain);
-    fprintf('Occupied spectrum:                               %f\n', occupied_spectrum);
-    fprintf('Occupied spectrum scaled by n_spectrum_occupied: %f\n\n', occupied_spectrum/n_spectrum_occupied);
+    fprintf('Total power of STF across all antennas in t domain: %f\n', power_stf_across_all_antennas_t_domain);
+    fprintf('Occupied spectrum:                                  %f\n', occupied_spectrum);
+    fprintf('Occupied spectrum scaled by n_spectrum_occupied:    %f\n\n', occupied_spectrum/n_spectrum_occupied);
 end

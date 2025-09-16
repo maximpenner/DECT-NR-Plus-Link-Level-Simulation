@@ -163,7 +163,10 @@ classdef tx_t < matlab.mixin.Copyable
             obj.packet_data.antenna_streams_mapped = antenna_streams_mapped;
 
             if verbosity_ > 0
-                lib_util.lib_plot_print.print_power(antenna_streams_mapped, n_spectrum_occupied, samples_antenna_tx, n_STF_samples);
+                lib_util.lib_plot_print.print_power_occupied_spectrum(antenna_streams_mapped, ...
+                                                                      n_spectrum_occupied, ...
+                                                                      samples_antenna_tx, ...
+                                                                      n_STF_samples);
             end   
         end
 

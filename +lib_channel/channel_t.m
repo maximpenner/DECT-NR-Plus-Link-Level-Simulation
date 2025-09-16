@@ -583,7 +583,7 @@ classdef channel_t < handle
                 mean_tau_weighted = sum(pathDelays.*avgPathGains_linear)/sum(avgPathGains_linear);
                 rms_tau = sqrt(sum(((pathDelays-mean_tau_weighted).^2).*avgPathGains_linear)/sum(avgPathGains_linear));
 
-                disp('##### Channel Properties ######');
+                disp('##### Channel ######');
                 fprintf('Sampling Rate: %f MS/s\n', obj.r_samp_rate/1e6);
                 fprintf('Sampling time Ts: %f ns\n', Ts/1e-9);
                 fprintf('Largest delay: %f ns\n', pathDelays(end)/1e-9);
