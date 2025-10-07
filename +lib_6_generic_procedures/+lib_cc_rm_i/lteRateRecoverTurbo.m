@@ -1,4 +1,9 @@
 function d_turbo = lteRateRecoverTurbo(f, N_TB_bits, rv, chs, cbsbuffers, G, N_L, Q_m)
+    % The function lteRateRecoverTurbo() provided by Matlab is given the transport block size as an argument.
+    % Based on the transport block size, it deduces the code block sizes assuming Z=6144.
+    % To allow Z=2048, this same-named function processes each code block individually.
+    % This way code block sizes for Z=2048 can be processed.
+
     % sizes of all code blocks before and after encoding
     K_r = lib_6_generic_procedures.lib_cc_rm_i.get_3gpp_code_block_segment_lengths(N_TB_bits + 24, 2048);
     C = numel(K_r);
@@ -21,7 +26,8 @@ function d_turbo = lteRateRecoverTurbo(f, N_TB_bits, rv, chs, cbsbuffers, G, N_L
 
         assert(numel(f_sub) == E_r(i));
 
-        % this is a hack, but it works
+        % This is the transport block size that is given lteRateRecoverTurbo() as an argument.
+        % The function lteRateRecoverTurbo() will assume there is only one code block with and add the 24 bit CRC.
         trblklen = K_r(i) - 24;
 
         if numel(cbsbuffers) > 0

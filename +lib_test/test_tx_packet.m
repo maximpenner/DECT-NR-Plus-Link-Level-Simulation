@@ -1,5 +1,5 @@
 function [] = test_tx_packet(tx_config)
-    % create transmitter, receiver and channel
+    % create transmitter
     tx = lib_types.tx_t(tx_config);
     
     % create a DECT NR+ packet
