@@ -57,13 +57,15 @@ Interpolated average path gains for a doubly selective channel.
 
 ## Known Issues
 - The channel coding requires verification. It is based on Matlab's LTE Toolbox.
-- Maximum code block size $Z=2048$ and channel coding with a limited number of soft bits are not implemented yet.
+- In an earlier version of the standard, the maximum code block size Z could be either 2048 or 6144. This functionality will be kept for the time being. In the current version of the standard, Z is limited to 2048.
+- In an earlier version of the standard, the number of transmit streams was signaled by a cyclic rotation of the STF in frequency domain. This functionality will be kept for the time being. In the current version of the standard, the number of transmit streams in a packet must be tested blindly.
 
 ## Future Work
 - [ ] improve speed, especially Wiener weights calculation at larger bandwidths
 - [x] add regression tests for different packet configurations
 - [x] implement Z=2048
 - [ ] implement limited number of soft bits
+- [ ] add 1024-QAM
 - [ ] implement basic MIMO algorithms for N<sub>SS</sub> > 1
 - [ ] residual STO estimation based on STF and DRS
 - [ ] residual CFO estimation based on STF and DRS
