@@ -91,7 +91,7 @@ function [phy_4_5] = run_chapter_4_5(tx_config)
     % custom values, all starting with n_
 
     % how many gross bits can we transmit?
-    phy_4_5.n_total_bits            = tm_mode.N_SS*N_PDC_subc*mcs.N_bps;
+    phy_4_5.G = tm_mode.N_SS*N_PDC_subc*mcs.N_bps;
 
     % what percentage of the spectrum do we occupy?
     phy_4_5.n_spectrum_occupied     = numel(k_b_OCC)/numerology.N_b_DFT;

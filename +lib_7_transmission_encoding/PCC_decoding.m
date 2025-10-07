@@ -5,24 +5,26 @@ function [plcf_bits_recovered, ...
           BF_report, ...
           pcc_dec_dbg] = PCC_decoding(x_PCC, PLCF_type, HARQ_buf_40, HARQ_buf_80)
 
-    %%
+    % notation following Figure 7.5.1-1: Physical control channel encoding
+
+    %% 7.5.5 Symbol mapping
     % d has a positive sign for bit 1 and a negative sign for bit 0
     d = lteSymbolDemodulate(x_PCC, 'QPSK', 'Soft');
     d_hard = lteSymbolDemodulate(x_PCC, 'QPSK', 'Hard');
 
-    %% descramble
-    % we must use softdecoding
+    %% 7.5.4 Scrambling
+    % we must use soft decoding
     [seq,~] = ltePRBS(hex2dec('0x44454354'), 98*2, 'signed');
     
     % if seq is logical 1, switch the sign, if seq is logical 0, keep the sign
     e = d.*seq;   
 
-    %% determine PLCF size
+    %% blindly determine PLCF size
     
     % According to 7.5.1, we blind decode both possible lengths and check which CRC is correct.
     % Note that PCC decoding is often ambiguous, i.e. we can have a correct CRC for 40 bit even if 80 were transmitted.
-    % In a real receiver, we could easily avoid that mistake by also checking the PCC content.
-    % in this simulation the PLCF content is random, so instead we assume we know the exact type.
+    % In a real receiver, we could easily avoid that by also checking the PCC content.
+    % In this simulation, the PLCF content is random. So instead we assume we know the exact type.
 
     assert(PLCF_type == 1 || PLCF_type == 2);
 
@@ -36,20 +38,14 @@ function [plcf_bits_recovered, ...
     PCC_HARQ_buf_40_report = [];
     PCC_HARQ_buf_80_report = [];
 
-    %% channel coding and rate matching
+    %% 7.5.3 Channel coding & rate matching
     chs.Modulation = 'QPSK';
-    %chs.NLayers = 1;
-    %chs.TxScheme = 'Port0';
-
-    % determine NIR
-    %NSoftbits = 25344*100;
-    %M_DL_HARQ = 1;
-    %M_limit = 8;
-    %chs.NIR = floor(NSoftbits/min(M_DL_HARQ, M_limit));
-
-    %chs.NSoftbits = ;
-    %chs.DuplexMode = ;
-    %chs.TDDConfig = ;
+    %chs.NLayers
+    %chs.TxScheme
+    %chs.NIR
+    %chs.NSoftbits
+    %chs.DuplexMode
+    %chs.TDDConfig
 
     if n_bits == 40
         cbsbuffers = HARQ_buf_40;
@@ -63,8 +59,7 @@ function [plcf_bits_recovered, ...
     % lteRateRecoverTurbo, however, assumes a 24 bit CRC.
     % So we pretend the last 8 bits of the PCC user bits belong to the CRC.
     % This way it looks like we passed on either 32 or 72 bit.
-    %
-    rv = 0;     % see 7.5.3
+    rv = 0;
     d_turbo = lteRateRecoverTurbo(e, (n_bits-8), rv, chs, cbsbuffers);
     
     if n_bits == 40
@@ -73,17 +68,10 @@ function [plcf_bits_recovered, ...
         PCC_HARQ_buf_80_report = d_turbo;
     end        
 
-    % channel decoding
     NTurboDecIts = 5;
     c = lteTurboDecode(d_turbo,NTurboDecIts);
 
-    %% code block segmentation not applied to PCC as it is to short
-    %
-
-    %% crc calculation
-    % hexToBinaryVector requires system control toolbox
-    %mask_CL = hexToBinaryVector('0x5555',16);   % 0101010101010101 = (21845)_10, bi2de(mask_CL,'left-msb')=21845
-    %mask_BF = hexToBinaryVector('0xAAAA',16);   % 1010101010101010 = (43690)_10
+    %% 7.5.2 CRC calculation
     mask_CL = logical(repmat([0, 1], 1, 8));
     mask_BF = logical(repmat([1, 0], 1, 8));
     mask_CL_BF = xor(mask_CL, mask_BF);

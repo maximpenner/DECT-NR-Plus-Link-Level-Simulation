@@ -12,7 +12,7 @@ classdef tx_t < matlab.mixin.Copyable
             assert(tx_config.is_valid());
 
             obj.tx_config = tx_config;
-            obj.phy_4_5 = lib_util.run_chapter_4_5(tx_config);
+            obj.phy_4_5 = lib_types.run_chapter_4_5(tx_config);
             obj.packet_data = [];
 
             if obj.tx_config.verbosity > 1
@@ -40,7 +40,7 @@ classdef tx_t < matlab.mixin.Copyable
             N_TX                = obj.phy_4_5.tm_mode.N_TX;
             N_eff_TX            = obj.phy_4_5.tm_mode.N_eff_TX;
 
-            modulation0         = obj.phy_4_5.mcs.modulation0;
+            mcs                 = obj.phy_4_5.mcs;
 
             N_b_DFT             = obj.phy_4_5.numerology.N_b_DFT;
             N_b_CP              = obj.phy_4_5.numerology.N_b_CP;
@@ -49,7 +49,7 @@ classdef tx_t < matlab.mixin.Copyable
             k_b_OCC             = obj.phy_4_5.k_b_OCC;
             n_STF_samples       = obj.phy_4_5.n_STF_samples;
             
-            n_total_bits        = obj.phy_4_5.n_total_bits;
+            G                   = obj.phy_4_5.G;
             n_spectrum_occupied = obj.phy_4_5.n_spectrum_occupied;
 
             u                   = obj.tx_config.u;
@@ -86,12 +86,13 @@ classdef tx_t < matlab.mixin.Copyable
                                                                             CL, ...
                                                                             precoding_identity_matrix);
             [x_PDC, pdc_enc_dbg] = lib_7_transmission_encoding.PDC_encoding(tb_bits, ...
-                                                                            n_total_bits, ...
+                                                                            G, ...
                                                                             Z, ...
                                                                             network_id, ...
                                                                             PLCF_type, ...
                                                                             rv, ...
-                                                                            modulation0);
+                                                                            mcs, ...
+                                                                            N_SS);
                                                                         
             % Next we map PCC and PDC to spatial streams (ss), see Table 6.3.2-1.
             % For PCC, there is only one spatial stream.

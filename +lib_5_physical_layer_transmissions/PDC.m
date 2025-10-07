@@ -142,6 +142,7 @@ function [physical_resource_mapping_PDC_cell, N_PDC_re] = PDC(u, ...
         l = l + 1;
     end   
 
+    assert(N_PDC_re > 0, "incorrect number of N_PDC_re, potentially invalid packet configuration");
     assert(N_PDC_re == N_PDC_re_cnt, "incorrect number of N_PDC_re");
     
     %% create a vector with linear indices

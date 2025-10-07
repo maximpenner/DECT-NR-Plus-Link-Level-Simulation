@@ -1,14 +1,12 @@
-function [c_r] = Code_block_segmentation_Z_2048(b)
+function [b, segErr] = code_block_desegmentation(c_r, B)
 
     % source: https://github.com/robmaunder/turbo-3gpp-matlab
     
     % according to 5.3 filler bits are unnecessary
-    
-    B = numel(b);
 
     assert(B > 0, 'Unsupported block length');
 
-    supported_values_of_K = [40:8:511,512:16:1023,1024:32:2047,2048:64:6144];
+    supported_values_of_K = [40:8:511,512:16:1023,1024:32:2047,2048];
 
     Z = 2048;
 
@@ -48,20 +46,14 @@ function [c_r] = Code_block_segmentation_Z_2048(b)
     
     assert(F == 0);
 
-    c_r = cell(1,C);
-    for r = 0:C-1
-        c_r{r+1} = zeros(1,K_r(r+1));
-    end
-
-    for k = 0:F-1
-        c_r{1}(k+1) = NaN;
-    end
+    b = zeros(1,B);
+    segErr = [];
 
     k = F;
     s = 0;
     for r = 0:C-1
         while k < K_r(r+1)-L
-            c_r{r+1}(k+1) = b(s+1);
+            b(s+1) = c_r{r+1}(k+1);
             k = k+1;
             s = s+1;
         end
@@ -73,22 +65,28 @@ function [c_r] = Code_block_segmentation_Z_2048(b)
             
             a_r(isnan(a_r)) = 0;
 
-            %p_r = calculate_crc_bits(a_r,G_max);
-            temp = lteCRCEncode(a_r,'24B');
-            p_r = temp(end-23:end);
-            p_r = p_r';
+            %p_r2 = calculate_crc_bits(a_r,G_max);
+            p_r2 = lteCRCEncode(a_r,'24B');
+            p_r2 = p_r2(end-23:end);
+            p_r2 = double(p_r2');
 
+            p_r = zeros(1,L);
             while k < K_r(r+1)
-                c_r{r+1}(k+1) = p_r(k+L-K_r(r+1)+1);
+                p_r(k+L-K_r(r+1)+1) = c_r{r+1}(k+1);
                 k = k+1;
             end
+
+            if ~isequal(p_r,p_r2)
+                %b = [];
+                segErr = [segErr int8(1)];
+                %return;
+            end
+
         end
         k=0;
-        
-        % we need to convert to the same format as matlab uses
-        temp = cell2mat(c_r(r+1));
-        temp = temp';
-        temp = int8(temp);
-        c_r(r+1) = {temp};
     end
+    
+    % convert b to correct format
+    b = b';
+    b = int8(b);    
 end

@@ -61,8 +61,9 @@ Interpolated average path gains for a doubly selective channel.
 
 ## Future Work
 - [ ] improve speed, especially Wiener weights calculation at larger bandwidths
-- [ ] add regression tests for different packet configurations
-- [ ] implement Z=2048 and limited number of soft bits
+- [x] add regression tests for different packet configurations
+- [x] implement Z=2048
+- [ ] implement limited number of soft bits
 - [ ] implement basic MIMO algorithms for N<sub>SS</sub> > 1
 - [ ] residual STO estimation based on STF and DRS
 - [ ] residual CFO estimation based on STF and DRS

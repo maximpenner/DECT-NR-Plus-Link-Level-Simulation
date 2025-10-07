@@ -71,9 +71,10 @@ classdef rx_t < matlab.mixin.Copyable
             stf_templates       = obj.rx_config.stf_templates;
         
             mode_0_to_11        = obj.phy_4_5.tm_mode.mode_0_to_11;
+            N_SS                = obj.phy_4_5.tm_mode.N_SS;
             N_eff_TX            = obj.phy_4_5.tm_mode.N_eff_TX;
 
-            modulation0         = obj.phy_4_5.mcs.modulation0;
+            mcs                 = obj.phy_4_5.mcs;
 
             N_b_DFT             = obj.phy_4_5.numerology.N_b_DFT;            
             N_b_CP              = obj.phy_4_5.numerology.N_b_CP;
@@ -260,7 +261,8 @@ classdef rx_t < matlab.mixin.Copyable
                                                                                                              network_id, ...
                                                                                                              PLCF_type, ...
                                                                                                              rv, ...
-                                                                                                             modulation0, ...
+                                                                                                             mcs, ...
+                                                                                                             N_SS, ...
                                                                                                              HARQ_buf_);
 
             %% save HARQ buffers for next call
@@ -293,7 +295,8 @@ classdef rx_t < matlab.mixin.Copyable
                 lib_util.lib_plot_print.plot_channel_estimation(ch_estim, ...
                                                                 obj.phy_4_5.numerology.n_guards_bottom, ...
                                                                 obj.phy_4_5.numerology.n_guards_top);
-                scatterplot(x_PDC_rev);                    
+                h = scatterplot(x_PDC_rev);
+                set(h, 'WindowStyle', 'Docked');
             end
         end
 

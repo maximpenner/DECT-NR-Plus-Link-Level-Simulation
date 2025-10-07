@@ -24,11 +24,6 @@ classdef tx_config_t
 
         function ret = is_valid(obj)
             ret = true;
-
-            % temporary constrain
-            if obj.Z ~= 6144
-                ret = false;
-            end
         end
     end
 
