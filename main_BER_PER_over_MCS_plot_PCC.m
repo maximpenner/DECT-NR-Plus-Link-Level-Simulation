@@ -8,19 +8,6 @@ load('results/var_all.mat');
 ber_global = n_bits_PCC_error_global./n_bits_PCC_sent_global;
 per_global = n_packets_PCC_error_global./n_packets_PCC_sent_global;
 
-% overwrite, fixed for PCC, always QPSK
-bps_global = ones(size(bps_global))*2;
-
-if tx.tx_config.PLCF_type == 1
-    plcf_length = 40;
-elseif tx.tx_config.PLCF_type == 2
-    plcf_length = 80;
-else
-    error('Unknown PLCF length.');
-end
-
-tbs_global = ones(size(tbs_global))*plcf_length;
-
 % required plot configuration
 K = db2pow(9.0);
 
@@ -29,112 +16,64 @@ set(groot,'defaultLegendInterpreter','latex');
 set(groot,'defaultTextInterpreter','latex');
 
 % plot configuration
-colors = [0,      0.4470, 0.7410;...
-          0.8500, 0.3250, 0.0980;...
-          0.9290, 0.6940, 0.1250;...
-          0.4940, 0.1840, 0.5560;...
-          0.4660, 0.6740, 0.1880;...
-          0.3010, 0.7450, 0.9330;...
-          0.6350, 0.0780, 0.1840;...
-          0.6350, 0.0780, 0.1840;...
-          0.6350, 0.0780, 0.1840;...
-          0.6350, 0.0780, 0.1840;...
-          0.6350, 0.0780, 0.1840;...
-          0.6350, 0.0780, 0.1840;...
-          0.6350, 0.0780, 0.1840;...
-          0.6350, 0.0780, 0.1840];
+colors_vec = [0,      0.4470, 0.7410;...
+              0.8500, 0.3250, 0.0980;...
+              0.9290, 0.6940, 0.1250;...
+              0.4940, 0.1840, 0.5560;...
+              0.4660, 0.6740, 0.1880;...
+              0.3010, 0.7450, 0.9330;...
+              0.6350, 0.0780, 0.1840;...
+              0.6350, 0.0780, 0.1840;...
+              0.6350, 0.0780, 0.1840;...
+              0.6350, 0.0780, 0.1840;...
+              0.6350, 0.0780, 0.1840;...
+              0.6350, 0.0780, 0.1840;...
+              0.6350, 0.0780, 0.1840;...
+              0.6350, 0.0780, 0.1840];
 legend_font_size = 8;
 marker_size = 4;
 axis_lim = [-15 55 1e-7 1e1];
 legend_location = 'NorthEast';
 
+% overwrite, fixed for PCC, always QPSK
+bps_global = ones(size(bps_global))*2;
+if tx.tx_config.PLCF_type == 1
+    tbs_global = ones(size(tbs_global))*40;
+elseif tx.tx_config.PLCF_type == 2
+    tbs_global = ones(size(tbs_global))*80;
+else
+    error('Unknown PLCF length.');
+end
+
 figure()
 clf()
 for cnt = 1:1:numel(mcs_index_vec)
 
-    % bits per symbol
+    % extract
+    mcs_index = mcs_index_vec(cnt);
+    snr_db_vec = snr_db_vec_global(cnt,:);
     bps = bps_global(cnt);
-    M = 2^bps;
+    tbs = tbs_global(cnt);
+    colors = colors_vec(cnt, :);
+    ber = ber_global(cnt,:);
 
-    % convert subcarrier snr to ebn0
-    %
-    %   S/N = R_b * E_b / (B * N0)
-    %
-    %   R_b = bps / T
-    %   B = 1 / T
-    %
-    %   S/N = bps * E_b/N0
-    %
-    % source: https://www.gaussianwaves.com/2008/11/relation-between-ebn0-and-snr-2/
-    EbN0_vec = db2pow(snr_db_vec_global(cnt,:))/bps;
-    EbN0_dB_vec = pow2db(EbN0_vec);
+    % plot BER references curves
+    lib_util.lib_plot_print.plot_ber_over_snr_references(mcs_index, snr_db_vec, bps, tbs, colors, K);
 
-    % AWGN, diversity order 1
-    if M==2
-        ber_rayleigh = berawgn(EbN0_dB_vec,'psk',M,1);
-    else
-        ber_rayleigh = berawgn(EbN0_dB_vec,'qam',M,1);
-    end
-    str = append('MCS=',num2str(mcs_index_vec(cnt)),', TBS=',num2str(tbs_global(cnt)), ', AWGN');
-    semilogy(snr_db_vec_global(cnt,:), ber_rayleigh,'-','DisplayName',str, 'Color', colors(cnt,:));
+    % plot measured BER
+    str = append('MCS=',num2str(mcs_index),', TBS=',num2str(tbs));
+    lineH = semilogy(snr_db_vec, ber_global(cnt,:), '-.o','DisplayName',str, 'Color', colors, 'MarkerSize', marker_size, 'MarkerFaceColor', colors);
     hold on
-
-        % RAYLEIGH, diversity order 1
-        if M==2
-            ber_rayleigh = berfading(EbN0_dB_vec,'psk',M,1);
-        else
-            ber_rayleigh = berfading(EbN0_dB_vec,'qam',M,1);
-        end
-        str = append('MCS=',num2str(mcs_index_vec(cnt)),', TBS=',num2str(tbs_global(cnt)), ', rayleigh');
-        semilogy(snr_db_vec_global(cnt,:), ber_rayleigh,'--','DisplayName',str, 'Color', colors(cnt,:));
-        hold on
-
-            % RAYLEIGH, diversity order 2
-            if M==2
-                ber_rayleigh = berfading(EbN0_dB_vec,'psk',M,2);
-            else
-                ber_rayleigh = berfading(EbN0_dB_vec,'qam',M,2);
-            end
-            str = append('MCS=',num2str(mcs_index_vec(cnt)),', TBS=',num2str(tbs_global(cnt)), ', rayleigh div=2');
-            semilogy(snr_db_vec_global(cnt,:), ber_rayleigh,'-.','DisplayName',str, 'Color', colors(cnt,:));
-            hold on
-
-                % RICIAN, diversity order 1
-                if M==2
-                    ber_rayleigh = berfading(EbN0_dB_vec,'psk',M,1,K);
-                else
-                    ber_rayleigh = berfading(EbN0_dB_vec,'qam',M,1,K);
-                end
-                str = append('MCS=',num2str(mcs_index_vec(cnt)),', TBS=',num2str(tbs_global(cnt)), ', rician');
-                semilogy(snr_db_vec_global(cnt,:), ber_rayleigh,'-o','DisplayName',str, 'Color', colors(cnt,:));
-                hold on
-    
-                    % RICIAN, diversity order 1
-                    if M==2
-                        ber_rayleigh = berfading(EbN0_dB_vec,'psk',M,2,K);
-                    else
-                        ber_rayleigh = berfading(EbN0_dB_vec,'qam',M,2,K);
-                    end
-                    str = append('MCS=',num2str(mcs_index_vec(cnt)),', TBS=',num2str(tbs_global(cnt)), ', rician div=2');
-                    semilogy(snr_db_vec_global(cnt,:), ber_rayleigh,'-d','DisplayName',str, 'Color', colors(cnt,:));
-                    hold on
-
-    % SIMULATION
-
-    % our measured ber
-    str = append('MCS=',num2str(mcs_index_vec(cnt)),', TBS=',num2str(tbs_global(cnt)));
-    lineH = semilogy(snr_db_vec_global(cnt,:), ber_global(cnt,:), '-.o','DisplayName',str, 'Color', colors(cnt,:), 'MarkerSize', marker_size, 'MarkerFaceColor', colors(cnt,:));
-    hold on
-
-    % general settings
-    title('BER uncoded')
-    xlabel('SNR (dB)')
-    ylabel('BER uncoded')
-    legend('Location',legend_location, 'FontSize', legend_font_size)
-    grid on
-    axis(axis_lim)
-    set(gca, 'ColorOrder', jet(100))
 end
+
+% configure plot
+title('BER uncoded')
+xlabel('SNR (dB)')
+ylabel('BER uncoded')
+legend('Location',legend_location, 'FontSize', legend_font_size)
+grid on
+axis(axis_lim)
+set(gca, 'ColorOrder', jet(100))
 
 savefig('results/A_BER_SNR_PCC.fig')
 
@@ -142,104 +81,59 @@ figure()
 clf()
 for cnt = 1:1:numel(mcs_index_vec)
 
-    % bits per symbol
+    % extract
+    mcs_index = mcs_index_vec(cnt);
+    snr_db_vec = snr_db_vec_global(cnt,:);
     bps = bps_global(cnt);
-    M = 2^bps;
+    tbs = tbs_global(cnt);
+    colors = colors_vec(cnt, :);
+    ber = ber_global(cnt,:);
+
+    % plot BER references curves
+    lib_util.lib_plot_print.plot_ber_over_ebn0_references(mcs_index, snr_db_vec, bps, tbs, colors, K);
 
     % convert subcarrier snr to ebn0
-    %
-    %   S/N = R_b * E_b / (B * N0)
-    %
-    %   R_b = bps / T
-    %   B = 1 / T
-    %
-    %   S/N = bps * E_b/N0
-    %
-    % source: https://www.gaussianwaves.com/2008/11/relation-between-ebn0-and-snr-2/
-    EbN0_vec = db2pow(snr_db_vec_global(cnt,:))/bps;
+    EbN0_vec = db2pow(snr_db_vec)/bps;
     EbN0_dB_vec = pow2db(EbN0_vec);
 
-    % AWGN, diversity order 1
-    if M==2
-        ber_rayleigh = berawgn(EbN0_dB_vec,'psk',M,1);
-    else
-        ber_rayleigh = berawgn(EbN0_dB_vec,'qam',M,1);
-    end
-    str = append('MCS=',num2str(mcs_index_vec(cnt)),', TBS=',num2str(tbs_global(cnt)), ', AWGN');
-    semilogy(EbN0_dB_vec, ber_rayleigh,'-','DisplayName',str, 'Color', colors(cnt,:));
-    hold on
-
-        % RAYLEIGH, diversity order 1
-        if M==2
-            ber_rayleigh = berfading(EbN0_dB_vec,'psk',M,1);
-        else
-            ber_rayleigh = berfading(EbN0_dB_vec,'qam',M,1);
-        end
-        str = append('MCS=',num2str(mcs_index_vec(cnt)),', TBS=',num2str(tbs_global(cnt)), ', rayleigh');
-        semilogy(EbN0_dB_vec, ber_rayleigh,'--','DisplayName',str, 'Color', colors(cnt,:));
-        hold on
-
-            % RAYLEIGH, diversity order 2
-            if M==2
-                ber_rayleigh = berfading(EbN0_dB_vec,'psk',M,2);
-            else
-                ber_rayleigh = berfading(EbN0_dB_vec,'qam',M,2);
-            end
-            str = append('MCS=',num2str(mcs_index_vec(cnt)),', TBS=',num2str(tbs_global(cnt)), ', rayleigh div=2');
-            semilogy(EbN0_dB_vec, ber_rayleigh,'-.','DisplayName',str, 'Color', colors(cnt,:));
-            hold on
-
-                % RICIAN, diversity order 1
-                if M==2
-                    ber_rayleigh = berfading(EbN0_dB_vec,'psk',M,1,K);
-                else
-                    ber_rayleigh = berfading(EbN0_dB_vec,'qam',M,1,K);
-                end
-                str = append('MCS=',num2str(mcs_index_vec(cnt)),', TBS=',num2str(tbs_global(cnt)), ', rician');
-                semilogy(EbN0_dB_vec, ber_rayleigh,'-o','DisplayName',str, 'Color', colors(cnt,:));
-                hold on
-    
-                    % RICIAN, diversity order 1
-                    if M==2
-                        ber_rayleigh = berfading(EbN0_dB_vec,'psk',M,2,K);
-                    else
-                        ber_rayleigh = berfading(EbN0_dB_vec,'qam',M,2,K);
-                    end
-                    str = append('MCS=',num2str(mcs_index_vec(cnt)),', TBS=',num2str(tbs_global(cnt)), ', rician div=2');
-                    semilogy(EbN0_dB_vec, ber_rayleigh,'-d','DisplayName',str, 'Color', colors(cnt,:));
-                    hold on
-
-    % SIMULATION
-
-    % our measured ber
-    str = append('MCS=',num2str(mcs_index_vec(cnt)),', TBS=',num2str(tbs_global(cnt)));
-    lineH = semilogy(EbN0_dB_vec, ber_global(cnt,:), '-.o','DisplayName',str, 'Color', colors(cnt,:), 'MarkerSize', marker_size, 'MarkerFaceColor', colors(cnt,:));
-    hold on
-
-    % general settings
-    title('BER uncoded')
-    xlabel('EbN0 (dB)')
-    ylabel('BER uncoded')
-    legend('Location',legend_location, 'FontSize', legend_font_size)
-    grid on
-    axis(axis_lim)
-    set(gca, 'ColorOrder', jet(100))
+    % plot measured BER
+    str = append('MCS=',num2str(mcs_index),', TBS=',num2str(tbs));
+    lineH = semilogy(EbN0_dB_vec, ber, '-.o','DisplayName', str, 'Color', colors, 'MarkerSize', marker_size, 'MarkerFaceColor', colors);
 end
+
+% configure plot
+title('BER uncoded')
+xlabel('EbN0 (dB)')
+ylabel('BER uncoded')
+legend('Location',legend_location, 'FontSize', legend_font_size)
+grid on
+axis(axis_lim)
+set(gca, 'ColorOrder', jet(100))
 
 savefig('results/B_BER_EBN0_PCC.fig')
 
 figure()
 clf()
 for cnt = 1:1:numel(mcs_index_vec)
-    str = append('MCS=',num2str(mcs_index_vec(cnt)),', TBS=',num2str(tbs_global(cnt)));
-    semilogy(snr_db_vec_global(cnt,:), per_global(cnt,:),'-o','DisplayName',str, 'Color', colors(cnt,:), 'MarkerSize', marker_size, 'MarkerFaceColor', colors(cnt,:));
+
+    % extract
+    mcs_index = mcs_index_vec(cnt);
+    colors = colors_vec(cnt, :);
+    per = per_global(cnt,:);
+
+    % plot measured PER
+    str = append('MCS=',num2str(mcs_index),', TBS=',num2str(tbs));
+    semilogy(snr_db_vec, per,'-o','DisplayName',str, 'Color', colors, 'MarkerSize', marker_size, 'MarkerFaceColor', colors);
     hold on
-    title('Packet Decoding Performance')
-    xlabel('SNR (dB)')
-    ylabel('PER')
-    legend('Location',legend_location, 'FontSize', legend_font_size)
-    grid on
-    axis(axis_lim)
 end
+
+% configure plot
+title('PER')
+xlabel('SNR (dB)')
+ylabel('PER')
+legend('Location',legend_location, 'FontSize', legend_font_size)
+grid on
+axis(axis_lim)
+set(gca, 'ColorOrder', jet(100))
 
 savefig('results/C_PER_SNR_PCC.fig')
