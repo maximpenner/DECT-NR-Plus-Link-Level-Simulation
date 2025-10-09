@@ -10,7 +10,6 @@ function [channel] = channel_example_factory(verbosity, type, tx, rx)
     % RF channel parameters (see +lib_ch/channel.m) valid for all channel types.
     channel                     = lib_channel.channel_t();
     channel.verbosity           = verbosity;
-    channel.verbosity_cp        = tx.phy_4_5.numerology.N_b_CP*tx.tx_config.oversampling;
     channel.type                = type;
 
     channel.N_TX                = N_TX;
@@ -41,7 +40,6 @@ function [channel] = channel_example_factory(verbosity, type, tx, rx)
 
         channel.r_DS_desired     = 10^(-7.03);
         channel.r_K              = db2pow(9.0);
-        channel.r_interpolation  = true;
 
         channel.init_rayleigh_rician_channel();
     else

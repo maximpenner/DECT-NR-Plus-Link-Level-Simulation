@@ -30,10 +30,9 @@ The Matlab LTE Toolbox is required for channel coding, the Communications Toolbo
 
 ## Main Scripts
 
-- **main_single_packet.m**: Simple example demonstrating how to use the simulation environment.
 - **main_BER_PER_over_MCS.m**: Parallel simulation of bit and packet error rates over MCS.
-- **main_BER_PER_over_MCS_plot_PCC.m**: Plot results of **main_BER_PER_over_MCS.m** for PCC.
-- **main_BER_PER_over_MCS_plot_PDC.m**: Plot results of **main_BER_PER_over_MCS.m** for PDC.
+- **main_BER_PER_over_MCS_plot.m**: Plot results of **main_BER_PER_over_MCS.m** for PDC.
+- **main_single_packet.m**: Simple example demonstrating how to use the simulation environment.
 
 ## Exemplary Simulation Results
 

@@ -62,7 +62,7 @@ function [coarse_peak_idx] = coarse_peak_search(verbosity, ...
         coarse_peak_idx(i) = cpi;
 
         % debugging
-        if verbosity > 1
+        if verbosity >= 2
             figure()
             clf()
             hold on

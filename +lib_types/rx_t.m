@@ -286,17 +286,9 @@ classdef rx_t < matlab.mixin.Copyable
             obj.packet_data.pcc_dec_dbg = pcc_dec_dbg;
             obj.packet_data.pdc_dec_dbg = pdc_dec_dbg;
 
-            if verbosity > 0
-                disp('##### RX Packet ######');
-                fprintf('Measured sto_fractional: %f samples\n\n', obj.packet_data.residual_report.sto_fractional);
-            end
-
-            if verbosity > 1
-                lib_util.lib_plot_print.plot_channel_estimation(ch_estim, ...
-                                                                obj.phy_4_5.numerology.n_guards_bottom, ...
-                                                                obj.phy_4_5.numerology.n_guards_top);
-                h = scatterplot(x_PDC_rev);
-                set(h, 'WindowStyle', 'Docked');
+            if verbosity >= 1
+                obj.plot_channel_estimation(ch_estim);
+                obj.plot_scatter(x_PDC_rev);
             end
         end
 
@@ -351,6 +343,59 @@ classdef rx_t < matlab.mixin.Copyable
             noise_power_measurement = sum(abs(noise_power_measurement).^2)/numel(noise_power_measurement);
 
             sinr = 10*log10(tx_power_measurement/noise_power_measurement);
+        end
+
+        function [] = plot_channel_estimation(obj, ch_estim)
+            assert(obj.rx_config.N_RX == numel(ch_estim));
+        
+            % extract dimensions
+            [N_subc, N_symb, N_TS] =  size(ch_estim{1});
+        
+            figure()
+            clf()
+
+            for i=1:obj.rx_config.N_RX
+        
+                % channel estimation of one antenna
+                ch_estim_single = ch_estim{i};
+        
+                for j=1:N_TS
+                
+                    % channel estimation of one transmit stream
+                    ch_estim_single_TS = ch_estim_single(:,:,j);
+        
+                    subplot(obj.rx_config.N_RX, N_TS, (i-1)*N_TS + j);
+                    hold on;
+        
+                    % fill subplot
+                    for k=1:N_symb
+        
+                        % channel estimation for one OFDM symbol
+                        ch_estim_single_TS_symb = ch_estim_single_TS(:, k);
+        
+                        % zero guards for nice plots
+                        ch_estim_single_TS_symb(1:obj.phy_4_5.numerology.n_guards_bottom) = 0;
+                        ch_estim_single_TS_symb(end-obj.phy_4_5.numerology.n_guards_top+1:end) = 0;
+        
+                        plot(-N_subc/2 : 1 : (N_subc/2-1), mag2db(abs(ch_estim_single_TS_symb)));
+                    end
+        
+                    title_str = "RX Ch Estim: Ant " + num2str(i-1) + " TS " + num2str(j-1) + " for " + num2str(N_symb) + " Symbols";
+                    title(title_str);
+                    grid on
+                    grid minor
+                    xlim([-N_subc/2 N_subc/2])
+                    ylim([-30 10])
+                    xlabel("Subcarrier Index")
+                    ylabel("Absolute dB")
+                end
+            end
+        end
+
+        function [] = plot_scatter(obj, x_PDC_rev)
+            h = scatterplot(x_PDC_rev);
+            title("RX Scatterplot");
+            set(h, 'WindowStyle', 'Docked');
         end
     end
 end
