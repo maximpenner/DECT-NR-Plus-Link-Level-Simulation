@@ -20,7 +20,7 @@ function [N_eff_TX_report, max_idx_fine] = fine_peak_search(verbosity, ...
 
     assert(mod(n_samples_STF_os, L) == 0);
 
-    %% perform crosscorrelation with STF templates for N_eff_TX and fine synchronization pointer determination
+    %% perform cross-correlation with STF templates for N_eff_TX and fine synchronization pointer determination
 
     % we have a coarse sync point, we have also determined the fractional + integer CFO
 
@@ -65,7 +65,7 @@ function [N_eff_TX_report, max_idx_fine] = fine_peak_search(verbosity, ...
             [max_val, max_idx] = max(abs(metric));
 
             % debugging
-            if verbosity > 2
+            if verbosity >= 2
                 figure()
 
                 plot(abs(metric));

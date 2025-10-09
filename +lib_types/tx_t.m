@@ -14,17 +14,6 @@ classdef tx_t < matlab.mixin.Copyable
             obj.tx_config = tx_config;
             obj.phy_4_5 = lib_types.run_chapter_4_5(tx_config);
             obj.packet_data = [];
-
-            if obj.tx_config.verbosity > 1
-                lib_util.lib_plot_print.plot_resource_mapping(obj.phy_4_5.numerology, ...
-                                                              obj.phy_4_5.N_PACKET_symb, ...
-                                                              obj.phy_4_5.tm_mode.N_TS, ...
-                                                              obj.phy_4_5.tm_mode.N_SS, ...
-                                                              obj.phy_4_5.physical_resource_mapping_STF_cell, ...
-                                                              obj.phy_4_5.physical_resource_mapping_DRS_cell, ...
-                                                              obj.phy_4_5.physical_resource_mapping_PCC_cell, ...
-                                                              obj.phy_4_5.physical_resource_mapping_PDC_cell);
-            end
         end
         
         function [samples_antenna_tx] = generate_packet(obj, plcf_bits, tb_bits)
@@ -47,10 +36,8 @@ classdef tx_t < matlab.mixin.Copyable
 
             N_PACKET_symb       = obj.phy_4_5.N_PACKET_symb;
             k_b_OCC             = obj.phy_4_5.k_b_OCC;
-            n_STF_samples       = obj.phy_4_5.n_STF_samples;
-            
+
             G                   = obj.phy_4_5.G;
-            n_spectrum_occupied = obj.phy_4_5.n_spectrum_occupied;
 
             u                   = obj.tx_config.u;
             b                   = obj.tx_config.b;
@@ -164,11 +151,9 @@ classdef tx_t < matlab.mixin.Copyable
             obj.packet_data.antenna_streams_mapped = antenna_streams_mapped;
 
             if verbosity_ > 0
-                lib_util.lib_plot_print.print_power_occupied_spectrum(antenna_streams_mapped, ...
-                                                                      n_spectrum_occupied, ...
-                                                                      samples_antenna_tx, ...
-                                                                      n_STF_samples);
-            end   
+                obj.plot_resource_allocation_in_frequency_domain();
+                obj.plot_resource_allocation_in_time_domain(samples_antenna_tx);
+            end
         end
 
         function [samples_antenna_tx] = generate_random_packet(obj)
@@ -186,6 +171,48 @@ classdef tx_t < matlab.mixin.Copyable
             tb_bits = randi([0 1], obj.phy_4_5.N_TB_bits, 1);
 
             samples_antenna_tx = obj.generate_packet(plcf_bits, tb_bits);
+        end
+
+        function [] = plot_resource_allocation_in_frequency_domain(obj)
+            % create matrix with all components
+            [~, mat_STF_DRS_PCC_PDC_all_streams] = lib_util.matrix_STF_DRS_PCC_PDC(obj.phy_4_5.numerology.N_b_DFT, ...
+                                                                                   obj.phy_4_5.N_PACKET_symb, ...
+                                                                                   obj.phy_4_5.tm_mode.N_TS, ...
+                                                                                   obj.phy_4_5.tm_mode.N_SS, ...
+                                                                                   obj.phy_4_5.physical_resource_mapping_STF_cell, ...
+                                                                                   obj.phy_4_5.physical_resource_mapping_DRS_cell, ...
+                                                                                   obj.phy_4_5.physical_resource_mapping_PCC_cell, ...
+                                                                                   obj.phy_4_5.physical_resource_mapping_PDC_cell);
+        
+            figure()
+            clf()
+            imagesc(mat_STF_DRS_PCC_PDC_all_streams);
+            title('TX Resource Allocation in Frequency Domain');
+            set(gca, 'YTick', 0:2:obj.phy_4_5.numerology.N_b_DFT, 'YTickLabel', obj.phy_4_5.numerology.N_b_DFT/2-(0:2:obj.phy_4_5.numerology.N_b_DFT))
+            ylabel('Subcarrier Index');
+            xlabel('OFDM symbol index');
+            axis image
+            axis ij
+            colormap jet
+            clim([0 4])
+        end
+
+        function [] = plot_resource_allocation_in_time_domain(obj, samples_antenna_tx)
+            figure()
+            clf()
+
+            for i=1:1:size(samples_antenna_tx, 2)
+                subplot(size(samples_antenna_tx, 2), 1, i)
+                plot(abs(samples_antenna_tx(:,i)));
+                hold on
+                yline(rms(samples_antenna_tx(:,i)), "LineWidth", 2);
+                legend("IQ", "RMS");
+                title("TX Resource Allocation in Time Domain of Antenna " + num2str(i));
+            end
+
+            ylabel('Absolute Amplitude');
+            xlabel('Samples Index');
+            ylim([0 3])
         end
     end
 end

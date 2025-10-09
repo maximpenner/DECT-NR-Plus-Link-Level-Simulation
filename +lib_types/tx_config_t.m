@@ -13,7 +13,7 @@ classdef tx_config_t
         PLCF_type           % Type 1 is 40 bits, Type 2 is 80 bits
         rv                  % HARQ version, values range from 0, 1, 2 to 3 (right HARQ retransmission order is 0 2 3 1)
         network_id          % 7.6.6 must be given as a 32 bit vector with network_id(1) being the MSB, network_id must be known for scrambler on PHY
-        verbosity           % show data during execution: 0 false, 1 only text, 2 text + plots
+        verbosity           % 0 no plots, >=1 TX/RX/CH plots, >=2 RX synchronization plots
     end
     
     methods
@@ -41,7 +41,7 @@ classdef tx_config_t
             obj.PLCF_type = 2;
             obj.rv = 0;
             obj.network_id = de2bi(1e6,32,'left-msb');
-            obj.verbosity = 2;
+            obj.verbosity = 1;
         end
     end
 end

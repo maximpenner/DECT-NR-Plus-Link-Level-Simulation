@@ -20,34 +20,33 @@ end
 
 fprintf('Starting at %s\n', datestr(now,'HH:MM:SS'));
 
-% choose mcs to simulate and maximum number of HARQ retransmissions
-mcs_index_vec = [1,2,3,4];      % part 3, Table A-1
-max_HARQ_retransmissions = 0;
+% choose mcs to simulate and maximum number of HARQ re-transmissions
+mcs = [1,2,3,4];
+harq_retransmissions = 0;
 
 % simulation range for link level simulation
-snr_db_vec_global = -10 : 1.0 : 30;
-snr_db_vec_global = repmat(snr_db_vec_global,numel(mcs_index_vec),1);
+snr_db = -10:1.0:30;
 
 % Packets per mcs and snr. Increase this number to get smoother curves.
-n_packets_per_snr = 0.1e3;
+n_packets_per_snr = 1.0e3;
 
 % result container for PCC
-n_bits_PCC_sent_global = zeros(numel(mcs_index_vec), numel(snr_db_vec_global(1,:)));        % BER uncoded
-n_bits_PCC_error_global = zeros(numel(mcs_index_vec), numel(snr_db_vec_global(1,:)));       % BER uncoded
-n_packets_PCC_sent_global = zeros(numel(mcs_index_vec), numel(snr_db_vec_global(1,:)));     % PER
-n_packets_PCC_error_global = zeros(numel(mcs_index_vec), numel(snr_db_vec_global(1,:)));    % PER
+n_bits_PCC_sent = zeros(numel(mcs), numel(snr_db(1,:)));        % BER uncoded
+n_bits_PCC_error = zeros(numel(mcs), numel(snr_db(1,:)));       % BER uncoded
+n_packets_PCC_sent = zeros(numel(mcs), numel(snr_db(1,:)));     % PER
+n_packets_PCC_error = zeros(numel(mcs), numel(snr_db(1,:)));    % PER
 
 % result container for PDC
-n_bits_PDC_sent_global = zeros(numel(mcs_index_vec), numel(snr_db_vec_global(1,:)));        % BER uncoded
-n_bits_PDC_error_global = zeros(numel(mcs_index_vec), numel(snr_db_vec_global(1,:)));       % BER uncoded
-n_packets_PDC_sent_global = zeros(numel(mcs_index_vec), numel(snr_db_vec_global(1,:)));     % PER
-n_packets_PDC_error_global = zeros(numel(mcs_index_vec), numel(snr_db_vec_global(1,:)));    % PER
+n_bits_PDC_sent = zeros(numel(mcs), numel(snr_db(1,:)));        % BER uncoded
+n_bits_PDC_error = zeros(numel(mcs), numel(snr_db(1,:)));       % BER uncoded
+n_packets_PDC_sent = zeros(numel(mcs), numel(snr_db(1,:)));     % PER
+n_packets_PDC_error = zeros(numel(mcs), numel(snr_db(1,:)));    % PER
 
-bps_global = zeros(numel(mcs_index_vec), 1);        % bits per symbol, PDC only
-tbs_global = zeros(numel(mcs_index_vec), 1);        % transport block size, PDC only
+% bits per symbol, transport block size
+bps = zeros(numel(mcs), 1);
+tbs = zeros(numel(mcs), 1);
 
-cnt = 1;
-for mcs_index = mcs_index_vec
+for cnt = 1:numel(mcs)
 
     % configuration is initialized with exemplary values
     tx_config = lib_types.tx_config_t();
@@ -58,7 +57,7 @@ for mcs_index = mcs_index_vec
     tx_config.PacketLengthType = 0;
     tx_config.PacketLength = 2;
     tx_config.tm_mode_0_to_11 = 0;
-    tx_config.mcs_index = mcs_index;
+    tx_config.mcs_index = mcs(cnt);
     tx_config.Z = 6144;
     tx_config.oversampling = 2;
     tx_config.codebook_index = 0;
@@ -79,24 +78,21 @@ for mcs_index = mcs_index_vec
 
     % create rx
     rx = lib_types.rx_t(tx, rx_config);
-
-    % local variables for a single MCS required for parfor, each worker can write into these arrays.
-    snr_db_vec = snr_db_vec_global(cnt,:);
     
     % PCC
-    n_bits_PCC_sent_local = zeros(1, numel(snr_db_vec));
-    n_bits_PCC_error_local = zeros(1, numel(snr_db_vec));
-    n_packets_PCC_sent_local = zeros(1, numel(snr_db_vec));
-    n_packets_PCC_error_local = zeros(1, numel(snr_db_vec));
+    n_bits_PCC_sent_row = zeros(1, numel(snr_db));
+    n_bits_PCC_error_row = zeros(1, numel(snr_db));
+    n_packets_PCC_sent_row = zeros(1, numel(snr_db));
+    n_packets_PCC_error_row = zeros(1, numel(snr_db));
   
     % PDC
-    n_bits_PDC_sent_local = zeros(1, numel(snr_db_vec));
-    n_bits_PDC_error_local = zeros(1, numel(snr_db_vec));
-    n_packets_PDC_sent_local = zeros(1, numel(snr_db_vec));
-    n_packets_PDC_error_local = zeros(1, numel(snr_db_vec));
+    n_bits_PDC_sent_row = zeros(1, numel(snr_db));
+    n_bits_PDC_error_row = zeros(1, numel(snr_db));
+    n_packets_PDC_sent_row = zeros(1, numel(snr_db));
+    n_packets_PDC_error_row = zeros(1, numel(snr_db));
 
     %for i=1:numel(snr_db_vec)
-    parfor i=1:numel(snr_db_vec)
+    parfor i=1:numel(snr_db)
         
         warning('off');
         
@@ -105,45 +101,43 @@ for mcs_index = mcs_index_vec
         rx_cpy = copy(rx);
 
         % run simulation over multiple packets
-        result = simulate_packets(tx_cpy, rx_cpy, snr_db_vec(i), n_packets_per_snr, max_HARQ_retransmissions);
+        result = simulate_packets(tx_cpy, rx_cpy, snr_db(i), n_packets_per_snr, harq_retransmissions);
         
         % each worker writes to local PCC result container
-        n_bits_PCC_sent_local(1,i) = result.n_bits_PCC_sent;
-        n_bits_PCC_error_local(1,i) = result.n_bits_PCC_error;
-        n_packets_PCC_sent_local(1,i) = n_packets_per_snr;
-        n_packets_PCC_error_local(1,i) = result.n_packets_PCC_error;         
+        n_bits_PCC_sent_row(1,i) = result.n_bits_PCC_sent;
+        n_bits_PCC_error_row(1,i) = result.n_bits_PCC_error;
+        n_packets_PCC_sent_row(1,i) = n_packets_per_snr;
+        n_packets_PCC_error_row(1,i) = result.n_packets_PCC_error;         
         
         % each worker writes to local PDC result container
-        n_bits_PDC_sent_local(1,i) = result.n_bits_PDC_sent;
-        n_bits_PDC_error_local(1,i) = result.n_bits_PDC_error;
-        n_packets_PDC_sent_local(1,i) = n_packets_per_snr;
-        n_packets_PDC_error_local(1,i) = result.n_packets_PDC_error;
+        n_bits_PDC_sent_row(1,i) = result.n_bits_PDC_sent;
+        n_bits_PDC_error_row(1,i) = result.n_bits_PDC_error;
+        n_packets_PDC_sent_row(1,i) = n_packets_per_snr;
+        n_packets_PDC_error_row(1,i) = result.n_packets_PDC_error;
     end
     
-    fprintf('Done! MCS %d of %d at %s\n', cnt, numel(mcs_index_vec), datestr(now,'HH:MM:SS'));
+    fprintf('Done! MCS %d of %d at %s\n', cnt, numel(mcs), datestr(now,'HH:MM:SS'));
     
     % copy from local to global PCC results container
-    n_bits_PCC_sent_global(cnt,:) = n_bits_PCC_sent_local;
-    n_bits_PCC_error_global(cnt,:) = n_bits_PCC_error_local;
-    n_packets_PCC_sent_global(cnt,:) = n_packets_PCC_sent_local;
-    n_packets_PCC_error_global(cnt,:) = n_packets_PCC_error_local;    
+    n_bits_PCC_sent(cnt,:) = n_bits_PCC_sent_row;
+    n_bits_PCC_error(cnt,:) = n_bits_PCC_error_row;
+    n_packets_PCC_sent(cnt,:) = n_packets_PCC_sent_row;
+    n_packets_PCC_error(cnt,:) = n_packets_PCC_error_row;    
 
     % copy from local to global PDC results container
-    n_bits_PDC_sent_global(cnt,:) = n_bits_PDC_sent_local;
-    n_bits_PDC_error_global(cnt,:) = n_bits_PDC_error_local;
-    n_packets_PDC_sent_global(cnt,:) = n_packets_PDC_sent_local;
-    n_packets_PDC_error_global(cnt,:) = n_packets_PDC_error_local;
+    n_bits_PDC_sent(cnt,:) = n_bits_PDC_sent_row;
+    n_bits_PDC_error(cnt,:) = n_bits_PDC_error_row;
+    n_packets_PDC_sent(cnt,:) = n_packets_PDC_sent_row;
+    n_packets_PDC_error(cnt,:) = n_packets_PDC_error_row;
 
-    bps_global(cnt) = tx.phy_4_5.mcs.N_bps;
-    tbs_global(cnt) = tx.phy_4_5.N_TB_bits;
-    
-    cnt = cnt + 1;
+    bps(cnt) = tx.phy_4_5.mcs.N_bps;
+    tbs(cnt) = tx.phy_4_5.N_TB_bits;
 end
 
-% save all variables
+% save all variables to file
 save('results/var_all.mat');
 
-function [result] = simulate_packets(tx_cpy, rx_cpy, snr_dB, n_packets_per_snr, max_HARQ_retransmissions)
+function [result] = simulate_packets(tx_cpy, rx_cpy, snr_dB, n_packets_per_snr, harq_retransmissions)
 
     n_bits_PCC_sent = 0;
     n_bits_PCC_error = 0;
@@ -160,7 +154,6 @@ function [result] = simulate_packets(tx_cpy, rx_cpy, snr_dB, n_packets_per_snr, 
     % create channel
     channel                     = lib_channel.channel_t();
     channel.verbosity           = 0;
-    channel.verbosity_cp        = tx_cpy.phy_4_5.numerology.N_b_CP*tx_cpy.tx_config.oversampling;
     channel.type                = 'rician';
     channel.N_TX                = N_TX;
     channel.N_RX                = N_RX;
@@ -176,7 +169,6 @@ function [result] = simulate_packets(tx_cpy, rx_cpy, snr_dB, n_packets_per_snr, 
     channel.r_type              = 'TDL-v';
     channel.r_DS_desired        = 10^(-7.03 + 0.00*randn(1,1));
     channel.r_K                 = db2pow(9.0 + 0.00*randn(1,1));
-    channel.r_interpolation     = true;
     channel.init_rayleigh_rician_channel();
 
     % adapt Wiener coefficients to channel conditions
@@ -201,7 +193,7 @@ function [result] = simulate_packets(tx_cpy, rx_cpy, snr_dB, n_packets_per_snr, 
         pcc_decoded_successfully = false;
         pdc_decoded_successfully = false;
 
-        for z=0:1:max_HARQ_retransmissions
+        for z=0:1:harq_retransmissions
 
             % there is a specific order for the redundancy version
             if mod(z,4) == 0
@@ -229,14 +221,12 @@ function [result] = simulate_packets(tx_cpy, rx_cpy, snr_dB, n_packets_per_snr, 
 
             % now let rx decode the frame
             rx_cpy.demod_decode_packet(samples_antenna_rx);
-            
-            % measure the BER uncoded
 
             assert(numel(tx_cpy.packet_data.pcc_enc_dbg.d) == 196);
             
+            % measure the BER uncoded
             n_bits_PCC_sent = n_bits_PCC_sent + numel(tx_cpy.packet_data.pcc_enc_dbg.d);
             n_bits_PCC_error = n_bits_PCC_error + rx_cpy.get_pcc_bit_errors_uncoded(tx_cpy);
-            
             n_bits_PDC_sent = n_bits_PDC_sent + numel(tx_cpy.packet_data.pdc_enc_dbg.d);
             n_bits_PDC_error = n_bits_PDC_error + rx_cpy.get_pdc_bit_errors_uncoded(tx_cpy);
             
@@ -250,7 +240,7 @@ function [result] = simulate_packets(tx_cpy, rx_cpy, snr_dB, n_packets_per_snr, 
                 pdc_decoded_successfully = true;
             end
             
-            % we continue sending retransmissions as long as not both were decoded correctly
+            % we continue sending re-transmissions as long as not both PCC and PDC are decoded correctly
             if pcc_decoded_successfully == true && pdc_decoded_successfully == true
                 break;
             end
