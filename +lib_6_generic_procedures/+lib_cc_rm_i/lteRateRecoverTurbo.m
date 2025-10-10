@@ -27,7 +27,7 @@ function d_turbo = lteRateRecoverTurbo(f, N_TB_bits, rv, chs, cbsbuffers, G, N_L
         assert(numel(f_sub) == E_r(i));
 
         % This is the transport block size that is given lteRateRecoverTurbo() as an argument.
-        % The function lteRateRecoverTurbo() will assume there is only one code block with and add the 24 bit CRC.
+        % The function lteRateRecoverTurbo() will assume there is only one code block and add the 24 bit CRC.
         trblklen = K_r(i) - 24;
 
         if numel(cbsbuffers) > 0
