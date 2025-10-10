@@ -95,7 +95,7 @@ function [samples_antenna_sync, sync_report] = sync(verbosity, ...
     % packet is longer when oversampled
     n_packet_samples_os = n_packet_samples*oversampling;
 
-    % we need a new time base with the length of one frame
+    % we need a new time base with the length of one packet
     time_base = 0:1:(n_packet_samples_os - 1);
     time_base = time_base';
     

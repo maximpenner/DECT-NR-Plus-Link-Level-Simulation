@@ -37,7 +37,7 @@ function [STF_templates] = stf_templates(tx_config)
                 tx_config_local.tm_mode_0_to_11 = 11;
         end
 
-        %% create a dummy frame
+        %% create a dummy packet
 
         tx_config_local.verbosity = 0;
         

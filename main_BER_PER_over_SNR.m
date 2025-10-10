@@ -219,7 +219,7 @@ function [result] = simulate_packets(tx_cpy, rx_cpy, snr_dB, n_packets_per_snr, 
             % make next channel impulse response independent from this one
             channel.reset_random_rayleigh_rician();
 
-            % now let rx decode the frame
+            % now let rx decode the packet
             rx_cpy.demod_decode_packet(samples_antenna_rx);
 
             assert(numel(tx_cpy.packet_data.pcc_enc_dbg.d) == 196);
@@ -248,12 +248,12 @@ function [result] = simulate_packets(tx_cpy, rx_cpy, snr_dB, n_packets_per_snr, 
 
         rx_cpy.clear_harq_buffers();
         
-        % check if frame was decoded correctly, maybe there's still an error despite all the HARQ iterations
+        % check if packet was decoded correctly, maybe there's still an error despite all the HARQ iterations
         if pcc_decoded_successfully == false
             n_packets_PCC_error = n_packets_PCC_error + 1;
         end            
 
-        % check if frame was decoded correctly, maybe there's still an error despite all the HARQ iterations
+        % check if packet was decoded correctly, maybe there's still an error despite all the HARQ iterations
         if pdc_decoded_successfully == false
             n_packets_PDC_error = n_packets_PDC_error + 1;
         end

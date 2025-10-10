@@ -7,7 +7,7 @@ function [wiener_weights_all_tx] = channel_estimation_wiener_weights(physical_re
                                                                      noise_estim, ...
                                                                      f_d_hertz, ...
                                                                      tau_rms_sec)
-    % frame parameters
+    % packet parameters
     T_s_sec = 1/samp_rate;                      % sample time in seconds
     T_symb_sec = T_s_sec * (N_b_DFT + N_b_CP);  % length of symbol (CP included) in seconds
     f_subc_spacing_hertz = samp_rate/N_b_DFT;   % subcarrier spacing in Hertz

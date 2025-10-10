@@ -17,7 +17,7 @@ function metric = coarse_metric(window, M, L, detection_E_rms_threshold)
     % power for normalization
     E = sum(sum(window.*conj(window)));
 
-    % we have to have a minimal power to assume there is a frame
+    % we have to have a minimal power to assume there is a packet
     E_mean = sqrt(E/(M*L));
     if E_mean < detection_E_rms_threshold
         metric = 0;
