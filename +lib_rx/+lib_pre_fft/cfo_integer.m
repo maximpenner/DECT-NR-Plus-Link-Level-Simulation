@@ -30,7 +30,7 @@ function [cfo_report] = cfo_integer(config, ...
 
     % one metric value per possible integer CFO per RX antenna
     N_RX = size(samples_antenna_stf_at_coarse_peak_cfo_fractional, 2);
-    metric = zeros(numel(config.integer.candidate_values), N_RX);
+    metric = zeros(numel(config.cfo_integer_candidate_values), N_RX);
 
     % go over each rx antenna
     for i=1:1:N_RX
@@ -39,7 +39,7 @@ function [cfo_report] = cfo_integer(config, ...
 
         % try for each possible frequency offset
         idx = 1;
-        for cfo_candidate = config.integer.candidate_values
+        for cfo_candidate = config.cfo_integer_candidate_values
 
             % Shift spectrum:
             %
@@ -69,5 +69,5 @@ function [cfo_report] = cfo_integer(config, ...
     [~, CFO_report_integer_index] = max(metric);
 
     % extract corresponding CFO value
-    cfo_report = config.integer.candidate_values(CFO_report_integer_index);
+    cfo_report = config.cfo_integer_candidate_values(CFO_report_integer_index);
 end

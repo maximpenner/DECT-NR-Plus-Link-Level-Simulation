@@ -46,7 +46,7 @@ function [coarse_peak_idx] = coarse_peak_search(verbosity, ...
             end
 
             % determine the metric at this sample index
-            metric(m) = lib_rx.lib_pre_fft.coarse_metric(samples_antenna_single(m:m+n_samples_STF_os-1), M, L, pre_fft_config.minimum_power_threshold);
+            metric(m) = lib_rx.lib_pre_fft.coarse_metric(samples_antenna_single(m:m+n_samples_STF_os-1), M, L, pre_fft_config.detection_minimum_power_threshold);
         end
 
         % warning: if sto_config.coarse_peak.step > 1, we apply the moving average across zeros!
@@ -70,8 +70,8 @@ function [coarse_peak_idx] = coarse_peak_search(verbosity, ...
             subplot(2,1,1)
             plot(abs(metric));
   
-            yline(pre_fft_config.threshold_value, 'r');
-            text(0,pre_fft_config.threshold_value + 0.05,'Detection Threshold')
+            yline(pre_fft_config.detection_threshold_value, 'r');
+            text(0,pre_fft_config.detection_threshold_value + 0.05,'Detection Threshold')
 
             xline(cpi, 'r-.');
 
@@ -83,8 +83,8 @@ function [coarse_peak_idx] = coarse_peak_search(verbosity, ...
             subplot(2,1,2)
             plot(abs(metric_mm));
 
-            yline(pre_fft_config.threshold_value, 'r');
-            text(0,pre_fft_config.threshold_value + 0.05,'Detection Threshold')
+            yline(pre_fft_config.detection_threshold_value, 'r');
+            text(0,pre_fft_config.detection_threshold_value + 0.05,'Detection Threshold')
 
             xline(cpi, 'r-.');
             text(cpi,cph,'Coarse Peak')
