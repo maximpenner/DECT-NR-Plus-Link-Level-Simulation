@@ -2,11 +2,9 @@ clear all;
 close all;
 
 % This script calculates BERs and PERs for DECT-2020 New Radio packets over various wireless channels (AWGN, Rayleigh, Rician) for different MCSs.
-% 
 % For each MCS and each SNR, the same number of packets is calculated.
 % Results are saved in the folder results/.
 % When this script is finished, the scripts main_BER_PER_over_MCS_plot_PCC.m and main_BER_PER_over_MCS_plot_PDC.m can be used to plot the results.
-%
 % Executing this script as is should take only a few seconds to minutes, depending of the system and multi-core capabilities (parfor).
 
 rng('shuffle');

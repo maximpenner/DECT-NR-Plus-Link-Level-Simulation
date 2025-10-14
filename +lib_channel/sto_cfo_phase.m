@@ -13,8 +13,8 @@ function [samples_antenna] = sto_cfo_phase(samples_antenna, sto_integer, sto_fra
         time_base = 0:size(samples_antenna, 1)-1;
         time_base = time_base';
 
+        % delayseq() requires radar toolbox, interp1 is default functionality
         time_base_interpolation = time_base + sto_fractional;
-
         for i=1:1:N_TX
             samples_antenna(:, i) = interp1(time_base, samples_antenna(:, i), time_base_interpolation, 'spline', 'extrap');
         end
