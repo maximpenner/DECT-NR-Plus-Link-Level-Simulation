@@ -31,12 +31,12 @@ Advanced Topics
     ├─ +lib_4_physical_layer_principles/    ETSI TS 103 636-3, Clause 4
     ├─ +lib_5_physical_layer_transmissions/ ETSI TS 103 636-3, Clause 5
     ├─ +lib_6_generic_procedures/           ETSI TS 103 636-3, Clause 6
-    │  |  ├─ +lib_cc_rm_i/                  channel coding, rate matching, interleaving
+    │   ├─ +lib_cc_rm_i/                    channel coding, rate matching, interleaving
     ├─ +lib_7_transmission_encoding/        ETSI TS 103 636-3, Clause 7
     ├─ +lib_Annex_A/                        ETSI TS 103 636-3, Annex A
     ├─ +lib_channel/                        wireless channel
     ├─ +lib_rx/                             receiver functionality
-    │  |  ├─ +lib_pre_fft/                  pre-fft synchronization in time domain
+    │   ├─ +lib_pre_fft/                    pre-fft synchronization in time domain
     ├─ +lib_test/                           regression testing
     ├─ +lib_types/                          basic types for TX and RX
     ├─ +lib_util/                           utility
