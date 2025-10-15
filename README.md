@@ -10,19 +10,37 @@ DECT NR+ is a non-cellular radio standard and part of [5G as defined by ITU-R](h
 
 ## Table of Contents
 
-1. [Software Requirements](#software-requirements)
-2. [Main Scripts](#capabilities)
-3. [Exemplary Simulation Results](#exemplary-simulation-results)
+1. [Directories](#directories)
+2. [Software Requirements](#software-requirements)
+3. [Main Scripts](#capabilities)
+4. [Exemplary Simulation Results](#exemplary-simulation-results)
     1. [Packet Error Rates](#packet-error-rates)
     2. [Resource Mapping](#resource-mapping)
     3. [Channel Interpolation](#channel-interpolation)
-4. [Known Issues](#known-issues)
-5. [Future Work](#future-work)
+5. [Known Issues](#known-issues)
+6. [Future Work](#future-work)
 
 Advanced Topics
 
-1. [Performance References](#performance-references)
+1. [BER and PER Performance References](#ber-and-per-performance-references)
 2. [Synchronization](#synchronization)
+
+## Directories
+
+    ├─ .vscode/                             VS Code settings
+    ├─ +lib_4_physical_layer_principles/    ETSI TS 103 636-3, Clause 4
+    ├─ +lib_5_physical_layer_transmissions/ ETSI TS 103 636-3, Clause 5
+    ├─ +lib_6_generic_procedures/           ETSI TS 103 636-3, Clause 6
+    │  |  ├─ +lib_cc_rm_i/                  channel coding, rate matching, interleaving
+    ├─ +lib_7_transmission_encoding/        ETSI TS 103 636-3, Clause 7
+    ├─ +lib_Annex_A/                        ETSI TS 103 636-3, Annex A
+    ├─ +lib_channel/                        wireless channel
+    ├─ +lib_rx/                             receiver functionality
+    │  |  ├─ +lib_pre_fft/                  pre-fft synchronization in time domain
+    ├─ +lib_test/                           regression testing
+    ├─ +lib_types/                          basic types for TX and RX
+    ├─ +lib_util/                           utility
+    ├─ pics/                                pictures in this README.md
 
 ## Software Requirements
 
@@ -30,9 +48,9 @@ The Matlab LTE Toolbox is required for channel coding, the Communications Toolbo
 
 ## Main Scripts
 
+- **main_single_packet.m**: Simple example demonstrating how to use the simulation environment.
 - **main_BER_PER_over_MCS.m**: Parallel simulation of bit and packet error rates over MCS.
 - **main_BER_PER_over_MCS_plot.m**: Plot results of **main_BER_PER_over_MCS.m** for PDC.
-- **main_single_packet.m**: Simple example demonstrating how to use the simulation environment.
 
 ## Exemplary Simulation Results
 
@@ -68,8 +86,9 @@ Interpolated average path gains for a doubly selective channel.
 - [ ] implement basic MIMO algorithms for N<sub>SS</sub> > 1
 - [ ] residual STO estimation based on STF and DRS
 - [ ] residual CFO estimation based on STF and DRS
+- [ ] transform project into Matlab toolbox
 
-## Performance References
+## BER and PER Performance References
 
 For simple channel models such as AWGN and Rayleigh flat-fading, there are closed-form BER expressions that can be used as lower BER performance bounds. Matlab's [bertool](https://de.mathworks.com/help/comm/ref/biterrorrateanalysis-app.html) can provide such theoretical BER curves. Lower bound means that the simulated/measured BER of a DECT NR+ system at a given SNR cannot fall below this lower bound. In fact, the BER tends to be worse, as a receiver must estimate and correct STO, CFO, the channel etc. which usually results in a loss of performance. If more complex channel models such as Rayleigh with frequency- and time-selective fading are simulated, this typically leads to an additional loss of performance. A total SNR loss in dB in the lower single-digit range is common.
 
