@@ -1,4 +1,4 @@
-# DECT-2020 New Radio Link-Level Simulation Environment
+# DECT-2020 New Radio Link-Level Simulation
 
 This repository contains a Matlab link-level simulation environment for DECT NR+ ([ETSI TS 103 636, Part 1 to 5](https://www.etsi.org/committee/1394-dect)) with the following features:
 
@@ -13,7 +13,7 @@ DECT NR+ is a non-cellular radio standard and part of [5G as defined by ITU-R](h
 1. [Directories](#directories)
 2. [Software Requirements](#software-requirements)
 3. [Main Scripts](#capabilities)
-4. [Exemplary Simulation Results](#exemplary-simulation-results)
+4. [Exemplary Results](#exemplary-results)
     1. [Packet Error Rates](#packet-error-rates)
     2. [Resource Mapping](#resource-mapping)
     3. [Channel Interpolation](#channel-interpolation)
@@ -52,7 +52,7 @@ The Matlab LTE Toolbox is required for channel coding, the Communications Toolbo
 - **main_BER_PER_over_MCS.m**: Parallel simulation of bit and packet error rates over MCS.
 - **main_BER_PER_over_MCS_plot.m**: Plot results of **main_BER_PER_over_MCS.m** for PDC.
 
-## Exemplary Simulation Results
+## Exemplary Results
 
 ### Packet Error Rates
 PERs of a SIMO (two receive antennas) system for different MCS over SNR in a Rician fading channel.
@@ -86,7 +86,7 @@ Interpolated average path gains for a doubly selective channel.
 - [ ] implement basic MIMO algorithms for N<sub>SS</sub> > 1
 - [ ] residual STO estimation based on STF and DRS
 - [ ] residual CFO estimation based on STF and DRS
-- [ ] transform project into Matlab toolbox
+- [ ] transform into Matlab toolbox
 
 ## BER and PER Performance References
 
