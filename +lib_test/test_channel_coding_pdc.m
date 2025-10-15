@@ -1,6 +1,6 @@
 function [result] = test_channel_coding_pdc(tx_config)
     % determine valid DECT NR+ packet size
-    phy_4_5 = lib_types.run_chapter_4_5(tx_config);
+    phy_4_5 = lib_types.run_clause_4_5(tx_config);
 
     % generate random bits
     tb_bits = randi([0 1], phy_4_5.N_TB_bits, 1);

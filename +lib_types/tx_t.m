@@ -12,7 +12,7 @@ classdef tx_t < matlab.mixin.Copyable
             assert(tx_config.is_valid());
 
             obj.tx_config = tx_config;
-            obj.phy_4_5 = lib_types.run_chapter_4_5(tx_config);
+            obj.phy_4_5 = lib_types.run_clause_4_5(tx_config);
             obj.packet_data = [];
         end
         

@@ -1,4 +1,4 @@
-function [phy_4_5] = run_chapter_4_5(tx_config)
+function [phy_4_5] = run_clause_4_5(tx_config)
 
     % This function is called in the constructor. It basically does all the calculations of chapter 4 and 5.
     % All data is saved in the structure phy_4_5.
