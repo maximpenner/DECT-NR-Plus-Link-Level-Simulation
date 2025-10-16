@@ -1,5 +1,11 @@
 function [] = loop_over_tx_config()
 
+    % Note that some errors are to be expected. For example,
+    % there are different numbers of codebook indices for the
+    % antenna configurations, and some packet lengths for 1
+    % or 2 antennas are too short when using a configuration
+    % with 4 or 8 antennas.
+
     % configurations are initialized with exemplary values
     tx_config = lib_types.tx_config_t();
 
@@ -53,16 +59,16 @@ function [] = loop_over_tx_config()
                                                     try
                                                         result = lib_test.test_channel_coding_pdc(tx_config);
                                                         assert(result.n_bit_errors == 0)
-                                                    catch
-                                                        fprintf("Error for cnt=%d.\n", cnt);
+                                                    catch ME
+                                                        fprintf("Error for cnt=%d. Message: %s\n", cnt, ME.message);
                                                         return;
                                                     end
                         
                                                     % test packet generation
                                                     try
                                                         lib_test.test_tx_packet(tx_config);
-                                                    catch
-                                                        fprintf("Error for cnt=%d.\n", cnt);
+                                                    catch ME
+                                                        fprintf("Error for cnt=%d. Message: %s\n", cnt, ME.message);
                                                         return;
                                                     end
 

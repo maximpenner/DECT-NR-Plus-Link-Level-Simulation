@@ -2,7 +2,7 @@ classdef tx_t < matlab.mixin.Copyable
     
     properties
         tx_config;      % data received from MAC layer
-        phy_4_5;        % data from chapter 4 and 5
+        phy_4_5;        % data from clause 4 and 5
         packet_data;    % intermediate results during packet decoding
     end
     
@@ -12,8 +12,134 @@ classdef tx_t < matlab.mixin.Copyable
             assert(tx_config.is_valid());
 
             obj.tx_config = tx_config;
-            obj.phy_4_5 = lib_types.run_clause_4_5(tx_config);
+            obj.run_clause_4_5();
             obj.packet_data = [];
+        end
+
+        % This method is called in the constructor. It basically does all the calculations of clause 4 and 5.
+        function [] = run_clause_4_5(obj)
+            %% for the purpose of readability
+            u                   = obj.tx_config.u;
+            b                   = obj.tx_config.b;
+            PacketLengthType    = obj.tx_config.PacketLengthType;
+            PacketLength        = obj.tx_config.PacketLength;
+            tm_mode_0_to_11     = obj.tx_config.tm_mode_0_to_11;
+            mcs_index           = obj.tx_config.mcs_index;
+            Z                   = obj.tx_config.Z;
+        
+            %% start generating the packet structure with the functions provided in the technical specification (TS)
+        
+            % 7.2
+            tm_mode = lib_7_transmission_encoding.transmission_modes(tm_mode_0_to_11);
+        
+            % Annex A
+            mcs = lib_Annex_A.modulation_and_coding_scheme(mcs_index);
+        
+            % 4.3
+            numerology = lib_4_physical_layer_principles.numerologies(u,b);
+        
+            % 4.4
+            [T_frame, N_FRAME_slot, T_slot] = lib_4_physical_layer_principles.frame_structure();
+        
+            % 4.5
+            k_b_OCC = lib_4_physical_layer_principles.physical_resources(numerology.N_b_OCC);
+        
+            % 5.1
+            N_PACKET_symb = lib_5_physical_layer_transmissions.Transmission_packet_structure(numerology, ...
+                                                                                             PacketLengthType, ...
+                                                                                             PacketLength, ...
+                                                                                             tm_mode.N_eff_TX, ...
+                                                                                             u);
+        
+            % 5.2.2
+            [physical_resource_mapping_STF_cell] = lib_5_physical_layer_transmissions.STF(numerology, ...
+                                                                                          k_b_OCC, ...
+                                                                                          tm_mode.N_eff_TX, ...
+                                                                                          b);
+        
+            % 5.2.3
+            [physical_resource_mapping_DRS_cell] = lib_5_physical_layer_transmissions.DRS(numerology, ...
+                                                                                          k_b_OCC, ...
+                                                                                          tm_mode.N_TS, ...
+                                                                                          tm_mode.N_eff_TX, ...
+                                                                                          N_PACKET_symb, ...
+                                                                                          b);
+        
+            % 5.2.4
+            [physical_resource_mapping_PCC_cell] = lib_5_physical_layer_transmissions.PCC(numerology, ...
+                                                                                          k_b_OCC, ...
+                                                                                          tm_mode.N_TS, ...
+                                                                                          N_PACKET_symb, ...
+                                                                                          physical_resource_mapping_STF_cell, ...
+                                                                                          physical_resource_mapping_DRS_cell);
+        
+            % 5.2.5
+            [physical_resource_mapping_PDC_cell, N_PDC_subc] = lib_5_physical_layer_transmissions.PDC(u, ...
+                                                                                                      numerology, ...
+                                                                                                      k_b_OCC, ...
+                                                                                                      N_PACKET_symb, ...
+                                                                                                      tm_mode.N_TS, ...
+                                                                                                      tm_mode.N_eff_TX, ...
+                                                                                                      physical_resource_mapping_STF_cell, ...
+                                                                                                      physical_resource_mapping_DRS_cell, ...
+                                                                                                      physical_resource_mapping_PCC_cell);
+        
+            % 5.3
+            N_TB_bits = lib_5_physical_layer_transmissions.Transport_block_size(tm_mode, mcs, N_PDC_subc, Z);
+        
+            % save data in structure
+            obj.phy_4_5.tm_mode                             = tm_mode;
+            obj.phy_4_5.mcs                                 = mcs;
+            obj.phy_4_5.numerology                          = numerology;
+            obj.phy_4_5.T_frame                             = T_frame;
+            obj.phy_4_5.N_FRAME_slot                        = N_FRAME_slot;
+            obj.phy_4_5.T_slot                              = T_slot;
+            obj.phy_4_5.k_b_OCC                             = k_b_OCC;
+            obj.phy_4_5.N_PACKET_symb                       = N_PACKET_symb;
+            obj.phy_4_5.physical_resource_mapping_STF_cell  = physical_resource_mapping_STF_cell;
+            obj.phy_4_5.physical_resource_mapping_DRS_cell  = physical_resource_mapping_DRS_cell;
+            obj.phy_4_5.physical_resource_mapping_PCC_cell  = physical_resource_mapping_PCC_cell;
+            obj.phy_4_5.physical_resource_mapping_PDC_cell  = physical_resource_mapping_PDC_cell;
+            obj.phy_4_5.N_PDC_subc                          = N_PDC_subc;
+            obj.phy_4_5.N_TB_bits                           = N_TB_bits;
+        
+            % custom values, all starting with n_
+        
+            % how many gross bits can we transmit?
+            obj.phy_4_5.G = tm_mode.N_SS*N_PDC_subc*mcs.N_bps;
+        
+            % what percentage of the spectrum do we occupy?
+            obj.phy_4_5.n_spectrum_occupied = numel(k_b_OCC)/numerology.N_b_DFT;
+        
+            % how long is a symbol (CP included) in samples?
+            obj.phy_4_5.n_T_u_symb_samples = (obj.phy_4_5.numerology.N_b_DFT*9)/8;
+        
+            % how long is a packet in samples? (Figures 5.1-1, 5.1-2, 5.1-3)
+            obj.phy_4_5.n_packet_samples = obj.phy_4_5.N_PACKET_symb*obj.phy_4_5.n_T_u_symb_samples;
+        
+            % How long are STF, DF and GI in samples? (Figures 5.1-1, 5.1-2, 5.1-3)
+            % How often does the pattern in STF repeat? (Figures 5.1-1, 5.1-2, 5.1-3)
+            switch u
+                case 1
+                    obj.phy_4_5.n_STF_samples = (obj.phy_4_5.n_T_u_symb_samples*14)/9;
+                    obj.phy_4_5.n_DF_samples = (obj.phy_4_5.N_PACKET_symb-2)*obj.phy_4_5.n_T_u_symb_samples;
+                    obj.phy_4_5.n_GI_samples = (obj.phy_4_5.n_T_u_symb_samples*4)/9;
+                    obj.phy_4_5.n_STF_pattern = 7;
+                case {2,4}
+                    obj.phy_4_5.n_STF_samples = obj.phy_4_5.n_T_u_symb_samples*2;
+                    obj.phy_4_5.n_DF_samples = (obj.phy_4_5.N_PACKET_symb-3)*obj.phy_4_5.n_T_u_symb_samples;
+                    obj.phy_4_5.n_GI_samples = obj.phy_4_5.n_T_u_symb_samples;
+                    obj.phy_4_5.n_STF_pattern = 9;
+                case 8
+                    obj.phy_4_5.n_STF_samples = obj.phy_4_5.n_T_u_symb_samples*2;
+                    obj.phy_4_5.n_DF_samples = (obj.phy_4_5.N_PACKET_symb-4)*obj.phy_4_5.n_T_u_symb_samples;
+                    obj.phy_4_5.n_GI_samples = obj.phy_4_5.n_T_u_symb_samples*2;
+                    obj.phy_4_5.n_STF_pattern = 9;                  
+            end
+        
+            assert(obj.phy_4_5.n_packet_samples == obj.phy_4_5.n_STF_samples + obj.phy_4_5.n_DF_samples + obj.phy_4_5.n_GI_samples);
+        
+            obj.phy_4_5.n_pcc_bits_uncoded = 196;
         end
         
         function [samples_antenna_tx] = generate_packet(obj, plcf_bits, tb_bits)
@@ -53,7 +179,7 @@ classdef tx_t < matlab.mixin.Copyable
             physical_resource_mapping_STF_cell = obj.phy_4_5.physical_resource_mapping_STF_cell;
             physical_resource_mapping_DRS_cell = obj.phy_4_5.physical_resource_mapping_DRS_cell;
 
-            %% chapter 7, based on the generic procedures of chapter 6
+            %% clause 7, based on the generic procedures of clause 6
 
             % The receiver needs to know if signal is beamformed or not for channel sounding purposes.
             % 7.2
@@ -143,16 +269,19 @@ classdef tx_t < matlab.mixin.Copyable
             obj.packet_data.plcf_bits = plcf_bits;
             obj.packet_data.tb_bits = tb_bits;
             obj.packet_data.x_PCC = x_PCC;
-            obj.packet_data.x_PDC = x_PDC;
             obj.packet_data.pcc_enc_dbg = pcc_enc_dbg;
+            obj.packet_data.x_PDC = x_PDC;
             obj.packet_data.pdc_enc_dbg = pdc_enc_dbg;
+            obj.packet_data.x_PCC_ss = x_PCC_ss;
+            obj.packet_data.x_PDC_ss = x_PDC_ss;
             obj.packet_data.y_PCC_ts = y_PCC_ts;
             obj.packet_data.y_PDC_ts = y_PDC_ts;
             obj.packet_data.antenna_streams_mapped = antenna_streams_mapped;
+            obj.packet_data.samples_antenna_tx = samples_antenna_tx;
 
             if verbosity_ > 0
                 obj.plot_resource_allocation_in_frequency_domain();
-                obj.plot_resource_allocation_in_time_domain(samples_antenna_tx);
+                obj.plot_resource_allocation_in_time_domain();
             end
         end
 
@@ -197,15 +326,16 @@ classdef tx_t < matlab.mixin.Copyable
             clim([0 4])
         end
 
-        function [] = plot_resource_allocation_in_time_domain(obj, samples_antenna_tx)
+        % This method must only be called after a packet was generated, otherwise the time domain signal is missing.
+        function [] = plot_resource_allocation_in_time_domain(obj)
             figure()
             clf()
 
-            for i=1:1:size(samples_antenna_tx, 2)
-                subplot(size(samples_antenna_tx, 2), 1, i)
-                plot(abs(samples_antenna_tx(:,i)));
+            for i=1:1:size(obj.packet_data.samples_antenna_tx, 2)
+                subplot(size(obj.packet_data.samples_antenna_tx, 2), 1, i)
+                plot(abs(obj.packet_data.samples_antenna_tx(:,i)));
                 hold on
-                yline(rms(samples_antenna_tx(:,i)), "LineWidth", 2);
+                yline(rms(obj.packet_data.samples_antenna_tx(:,i)), "LineWidth", 2);
                 legend("IQ", "RMS");
                 title("TX Resource Allocation in Time Domain of Antenna " + num2str(i));
             end

@@ -19,9 +19,6 @@ function [N_PACKET_symb] = Transmission_packet_structure(numerology, PacketLengt
             error('For u=8 and N_eff_TX=8 at least 20 symbols are required and N_PACKET_symb must be a multiple of 10, see 5.1 Transmission packet structure.');
         end
     end
-    
-    % NOTE
-    % ?
 
     % Figures 4.5-2 and 4.5-3
     tx_packet_len = N_PACKET_symb*numerology.T_u_symb;
