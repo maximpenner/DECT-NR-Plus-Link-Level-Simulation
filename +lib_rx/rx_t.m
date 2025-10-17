@@ -1,11 +1,21 @@
 classdef rx_t < matlab.mixin.Copyable
     
     properties
-        tx_config;      % data received from MAC layer
-        phy_4_5;        % data from clause 4 and 5
-        packet_data;    % intermediate results during packet decoding
+        % copied from lib_tx.tx_t()
+        config;
+        derived;
 
-        rx_config;      % additional configuration of the receiver
+        % number of antennas at the receiver
+        N_RX
+
+        % processing after the FFT in frequency domain
+        sto_fractional_config           % based on STF and optionally DRS
+        sto_residual_config             % based on DRS
+        cfo_residual_config             % based on DRS
+        channel_estimation_config       % based on optionally STF and DRS
+        equalization_detection_config
+
+        packet_data;    % intermediate results during packet decoding
 
         HARQ_buf_40;    % PCC 40 bits
         HARQ_buf_80;    % PCC 80 bits
@@ -15,22 +25,22 @@ classdef rx_t < matlab.mixin.Copyable
     end
     
     methods
-        function obj = rx_t(tx, rx_config)
-            assert(isa(tx, "lib_types.tx_t"));
-            assert(isa(rx_config, "lib_types.rx_config_t"));
+        function obj = rx_t(tx)
+            assert(isa(tx, "lib_tx.tx_t"));
+            assert(tx.config.is_valid());
 
-            % create copies
-            obj.tx_config = tx.tx_config;
-            obj.phy_4_5 = tx.phy_4_5;
+            obj.config = tx.config;
+            obj.derived = tx.derived;
+            
+            obj = obj.set_example_values();
+
             obj.packet_data = [];
-
-            obj.rx_config = rx_config;
 
             obj.clear_harq_buffers();
             
-            obj.set_wiener(obj.rx_config.channel_estimation_config.noise_estim, ...
-                           obj.rx_config.channel_estimation_config.f_d_hertz, ...
-                           obj.rx_config.channel_estimation_config.tau_rms_sec);
+            obj.set_wiener(obj.channel_estimation_config.noise_estim, ...
+                           obj.channel_estimation_config.f_d_hertz, ...
+                           obj.channel_estimation_config.tau_rms_sec);
         end
 
         function [] = clear_harq_buffers(obj)
@@ -44,12 +54,12 @@ classdef rx_t < matlab.mixin.Copyable
         % For noise, the best case value is assumed, for delay and Doppler spread the worst case value.
         % To improve performance, different sets should be precalculated for different SNRs.
         function [] = set_wiener(obj, noise_estim, f_d_hertz, tau_rms_sec)
-            obj.wiener = lib_rx.channel_estimation_wiener_weights(obj.phy_4_5.physical_resource_mapping_DRS_cell, ...
-                                                                  obj.rx_config.channel_estimation_config.N_closest_DRS_pilots, ...
-                                                                  obj.phy_4_5.numerology.N_b_DFT, ...
-                                                                  obj.phy_4_5.N_PACKET_symb, ...
-                                                                  obj.phy_4_5.numerology.N_b_CP, ...
-                                                                  obj.phy_4_5.numerology.B_u_b_DFT, ...
+            obj.wiener = lib_rx.channel_estimation_wiener_weights(obj.derived.physical_resource_mapping_DRS_cell, ...
+                                                                  obj.channel_estimation_config.N_closest_DRS_pilots, ...
+                                                                  obj.derived.numerology.N_b_DFT, ...
+                                                                  obj.derived.N_PACKET_symb, ...
+                                                                  obj.derived.numerology.N_b_CP, ...
+                                                                  obj.derived.numerology.B_u_b_DFT, ...
                                                                   noise_estim, ...
                                                                   f_d_hertz, ...
                                                                   tau_rms_sec);
@@ -59,99 +69,57 @@ classdef rx_t < matlab.mixin.Copyable
         % It gets more complicated when using HARQ as calls to this function depend on each other.
         % The handle to tx is required to determine the SINR
         function [plcf_bits_recovered, tb_bits_recovered] = demod_decode_packet(obj, samples_antenna_rx)
+            
             %% for the purpose of readability, extract all variables that are necessary at this stage
 
-            verbosity           = obj.tx_config.verbosity;
+            verbosity           = obj.config.verbosity;
 
             HARQ_buf_40_        = obj.HARQ_buf_40;
             HARQ_buf_80_        = obj.HARQ_buf_80;
             HARQ_buf_           = obj.HARQ_buf;
             wiener_             = obj.wiener;
-
-            stf_templates       = obj.rx_config.stf_templates;
         
-            mode_0_to_11        = obj.phy_4_5.tm_mode.mode_0_to_11;
-            N_SS                = obj.phy_4_5.tm_mode.N_SS;
-            N_eff_TX            = obj.phy_4_5.tm_mode.N_eff_TX;
+            mode_0_to_11        = obj.derived.tm_mode.mode_0_to_11;
+            N_SS                = obj.derived.tm_mode.N_SS;
+            N_eff_TX            = obj.derived.tm_mode.N_eff_TX;
 
-            mcs                 = obj.phy_4_5.mcs;
+            mcs                 = obj.derived.mcs;
 
-            N_b_DFT             = obj.phy_4_5.numerology.N_b_DFT;            
-            N_b_CP              = obj.phy_4_5.numerology.N_b_CP;
+            N_b_DFT             = obj.derived.numerology.N_b_DFT;            
+            N_b_CP              = obj.derived.numerology.N_b_CP;
 
-            N_TB_bits           = obj.phy_4_5.N_TB_bits;
-            N_PACKET_symb       = obj.phy_4_5.N_PACKET_symb;
-            k_b_OCC             = obj.phy_4_5.k_b_OCC;
+            N_TB_bits           = obj.derived.N_TB_bits;
+            N_PACKET_symb       = obj.derived.N_PACKET_symb;
+            k_b_OCC             = obj.derived.k_b_OCC;
 
-            n_packet_samples    = obj.phy_4_5.n_packet_samples;
+            u                   = obj.config.u;
+            b                   = obj.config.b;
+            Z                   = obj.config.Z;
+            network_id          = obj.config.network_id;
+            PLCF_type           = obj.config.PLCF_type;
+            rv                  = obj.config.rv;
+            oversampling        = obj.config.oversampling;
 
-            u                   = obj.tx_config.u;
-            b                   = obj.tx_config.b;
-            Z                   = obj.tx_config.Z;
-            network_id          = obj.tx_config.network_id;
-            PLCF_type           = obj.tx_config.PLCF_type;
-            rv                  = obj.tx_config.rv;
-            N_RX                = obj.rx_config.N_RX;
-            oversampling        = obj.tx_config.oversampling;
+            physical_resource_mapping_PCC_cell = obj.derived.physical_resource_mapping_PCC_cell;
+            physical_resource_mapping_PDC_cell = obj.derived.physical_resource_mapping_PDC_cell;
+            physical_resource_mapping_STF_cell = obj.derived.physical_resource_mapping_STF_cell;
+            physical_resource_mapping_DRS_cell = obj.derived.physical_resource_mapping_DRS_cell;
 
-            pre_fft_config      = obj.rx_config.pre_fft_config;
-
-            equalization_detection_config = obj.rx_config.equalization_detection_config;
-
-            physical_resource_mapping_PCC_cell = obj.phy_4_5.physical_resource_mapping_PCC_cell;
-            physical_resource_mapping_PDC_cell = obj.phy_4_5.physical_resource_mapping_PDC_cell;
-            physical_resource_mapping_STF_cell = obj.phy_4_5.physical_resource_mapping_STF_cell;
-            physical_resource_mapping_DRS_cell = obj.phy_4_5.physical_resource_mapping_DRS_cell;
-
-            %% synchronization before the FFT based on the STF
-            if ~isempty(pre_fft_config)
-
-                assert(size(samples_antenna_rx, 1) > obj.phy_4_5.n_packet_samples*oversampling, ...
-                       "for synchonization more samples than the packet size must be provided");
-
-                % If oversampling is used, we have to remove out-of-band noise.
-                % Otherwise synchronization in time domain is impaired.
-                if oversampling > 1
-                    samples_antenna_rx = lib_rx.lib_pre_fft.lpf(samples_antenna_rx, oversampling);
-                end
-
-                % The number of samples received is larger than the number of samples in a packet.
-                % We try to synchronize the packet and extract the exact number of samples in the packet, which we assume to be known.
-                % In a real receiver, the number of samples is unknown.
-                % We would first have to decode the PCC which lies in the first few OFDM symbols and extract that information.
-                [samples_antenna_rx_sto_cfo, sync_report] = lib_rx.lib_pre_fft.sync(verbosity, ...
-                                                                                    pre_fft_config, ...
-                                                                                    u, ...
-                                                                                    N_b_DFT, ...
-                                                                                    samples_antenna_rx, ...
-                                                                                    stf_templates, ...
-                                                                                    n_packet_samples, ...
-                                                                                    oversampling);
-
-                obj.packet_data.sync_report = sync_report;
-            else
-                assert(size(samples_antenna_rx, 1) == obj.phy_4_5.n_packet_samples*oversampling, ...
-                       "without synchonization the same number of samples as the packet contains must be provided");
-
-                % assume the input samples are synchronized and have the correct length
-                samples_antenna_rx_sto_cfo = samples_antenna_rx;
-
-                obj.packet_data.sync_report = [];
-            end
+            assert(size(samples_antenna_rx, 1) == obj.derived.n_packet_samples*oversampling, "incorrect number of input samples");
 
             %% revert cover sequence by reapplying it
-            samples_antenna_rx_sto_cfo = lib_6_generic_procedures.STF_signal_cover_sequence(samples_antenna_rx_sto_cfo, ...
-                                                                                            u, ...
-                                                                                            b*oversampling);
+            samples_antenna_rx = lib_6_generic_procedures.STF_signal_cover_sequence(samples_antenna_rx, ...
+                                                                                    u, ...
+                                                                                    b*oversampling);
 
             %% OFDM demodulation a.k.a FFT
             % Switch back to frequency domain.
             % We use one version with subcarriers from oversampling removed and one with them still occupied.
             % The second version might be necessary if we have a very large, uncorrected integer CFO.
-            [antenna_streams_mapped_rev, ~]= lib_6_generic_procedures.ofdm_signal_generation_Cyclic_prefix_insertion_rev(samples_antenna_rx_sto_cfo, ...
+            [antenna_streams_mapped_rev, ~]= lib_6_generic_procedures.ofdm_signal_generation_Cyclic_prefix_insertion_rev(samples_antenna_rx, ...
                                                                                                                          k_b_OCC, ...
                                                                                                                          N_PACKET_symb, ...
-                                                                                                                         N_RX, ...
+                                                                                                                         obj.N_RX, ...
                                                                                                                          N_eff_TX, ...
                                                                                                                          N_b_DFT, ...
                                                                                                                          u, ...
@@ -163,10 +131,10 @@ classdef rx_t < matlab.mixin.Copyable
             % This is known as the phase error gradient (PEG).
             % A residual STO may also be due to a Symbol Clock Offset (SCO).
             % ToDo: residual STO based on STF plus DRS
-            if ~isempty(obj.rx_config.post_fft_sto_fractional_config)
+            if ~isempty(obj.sto_fractional_config)
                 [antenna_streams_mapped_rev, sto_fractional] = lib_rx.sto_fractional(antenna_streams_mapped_rev, ...
                                                                                      physical_resource_mapping_STF_cell, ...
-                                                                                     N_RX, ...
+                                                                                     obj.N_RX, ...
                                                                                      oversampling);
 
                 % add to report
@@ -181,11 +149,11 @@ classdef rx_t < matlab.mixin.Copyable
             % This is known as the common phase error (CPE).
             % Is a real receiver, a CFO can also be caused by phase noise.
             % ToDo: residual CFO based on STF plus DRS
-            if ~isempty(obj.rx_config.post_FFT_cfo_residual_config)
+            if ~isempty(obj.cfo_residual_config)
                 antenna_streams_mapped_rev = lib_rx.cfo_residual(antenna_streams_mapped_rev, ...
                                                                  physical_resource_mapping_DRS_cell, ...
                                                                  physical_resource_mapping_STF_cell, ...
-                                                                 N_RX, ...
+                                                                 obj.N_RX, ...
                                                                  N_eff_TX);
             end
 
@@ -203,40 +171,40 @@ classdef rx_t < matlab.mixin.Copyable
             ch_estim = lib_rx.channel_estimation_wiener(antenna_streams_mapped_rev, ...
                                                         physical_resource_mapping_DRS_cell, ...
                                                         wiener_, ...
-                                                        N_RX, ...
+                                                        obj.N_RX, ...
                                                         N_eff_TX);
             
             %% equalization and detection
             % With the known transmission mode and the channel estimate, we can now extract the binary data from the packet.
             % Equalization here is understood as the inversion of channel effects at the subcarriers, usually paired with a symbol demapper.
             % For MIMO detection with N_SS > 1 and symbol detection, equalization is not performed explicitly but is implicit part of the underlying algorithm.
-            if ~isempty(equalization_detection_config)
+            if ~isempty(obj.equalization_detection_config)
                 
                 % SISO
-                if N_eff_TX == 1 && N_RX ==1
+                if N_eff_TX == 1 && obj.N_RX ==1
 
                     x_PCC_rev = lib_rx.equalization_SISO_zf(antenna_streams_mapped_rev, ch_estim, physical_resource_mapping_PCC_cell);
                     x_PDC_rev = lib_rx.equalization_SISO_zf(antenna_streams_mapped_rev, ch_estim, physical_resource_mapping_PDC_cell);
 
                 % SIMO (Maximum Ratio Combining (MRC))
-                elseif N_eff_TX == 1 && N_RX > 1
+                elseif N_eff_TX == 1 && obj.N_RX > 1
 
-                    x_PCC_rev = lib_rx.equalization_SIMO_mrc(antenna_streams_mapped_rev, ch_estim, physical_resource_mapping_PCC_cell, N_RX);
-                    x_PDC_rev = lib_rx.equalization_SIMO_mrc(antenna_streams_mapped_rev, ch_estim, physical_resource_mapping_PDC_cell, N_RX);
+                    x_PCC_rev = lib_rx.equalization_SIMO_mrc(antenna_streams_mapped_rev, ch_estim, physical_resource_mapping_PCC_cell, obj.N_RX);
+                    x_PDC_rev = lib_rx.equalization_SIMO_mrc(antenna_streams_mapped_rev, ch_estim, physical_resource_mapping_PDC_cell, obj.N_RX);
 
                 % MISO (Alamouti) and MIMO (Alamouti + MRC and other modes)
                 else
                     % Transmit diversity precoding
                     if ismember(mode_0_to_11, [1,5,10]) == true
-                        x_PCC_rev = lib_rx.equalization_MISO_MIMO_alamouti_mrc(antenna_streams_mapped_rev, ch_estim, N_RX, N_eff_TX, physical_resource_mapping_PCC_cell);
-                        x_PDC_rev = lib_rx.equalization_MISO_MIMO_alamouti_mrc(antenna_streams_mapped_rev, ch_estim, N_RX, N_eff_TX, physical_resource_mapping_PDC_cell);
+                        x_PCC_rev = lib_rx.equalization_MISO_MIMO_alamouti_mrc(antenna_streams_mapped_rev, ch_estim, obj.N_RX, N_eff_TX, physical_resource_mapping_PCC_cell);
+                        x_PDC_rev = lib_rx.equalization_MISO_MIMO_alamouti_mrc(antenna_streams_mapped_rev, ch_estim, obj.N_RX, N_eff_TX, physical_resource_mapping_PDC_cell);
                     % MIMO modes with more than one spatial stream
                     else
                         error("MIMO modes with N_SS>1 not implemented yet.");
                     end
                 end
                 
-            % no equalization, a great debugging tool when using awgn channel
+            % no equalization, a great debugging tool when using AWGN channel
             else
                 x_PCC_rev = lib_7_transmission_encoding.subcarrier_demapping_PCC(antenna_streams_mapped_rev, physical_resource_mapping_PCC_cell);
                 x_PDC_rev = lib_7_transmission_encoding.subcarrier_demapping_PDC(antenna_streams_mapped_rev, physical_resource_mapping_PDC_cell);                
@@ -250,7 +218,7 @@ classdef rx_t < matlab.mixin.Copyable
              CL_report, ...
              BF_report, ...
              pcc_dec_dbg] =  lib_7_transmission_encoding.PCC_decoding(x_PCC_rev, ...
-                                                                      obj.tx_config.PLCF_type, ...
+                                                                      obj.config.PLCF_type, ...
                                                                       HARQ_buf_40_, ...
                                                                       HARQ_buf_80_);
             
@@ -350,7 +318,7 @@ classdef rx_t < matlab.mixin.Copyable
         end
 
         function [] = plot_channel_estimation(obj)
-            assert(obj.rx_config.N_RX == numel(obj.packet_data.ch_estim));
+            assert(obj.N_RX == numel(obj.packet_data.ch_estim));
         
             % extract dimensions
             [N_subc, N_symb, N_TS] =  size(obj.packet_data.ch_estim{1});
@@ -358,7 +326,7 @@ classdef rx_t < matlab.mixin.Copyable
             figure()
             clf()
 
-            for i=1:obj.rx_config.N_RX
+            for i=1:obj.N_RX
         
                 % channel estimation of one antenna
                 ch_estim_single = obj.packet_data.ch_estim{i};
@@ -368,7 +336,7 @@ classdef rx_t < matlab.mixin.Copyable
                     % channel estimation of one transmit stream
                     ch_estim_single_TS = ch_estim_single(:,:,j);
         
-                    subplot(obj.rx_config.N_RX, N_TS, (i-1)*N_TS + j);
+                    subplot(obj.N_RX, N_TS, (i-1)*N_TS + j);
                     hold on;
         
                     % fill subplot
@@ -378,8 +346,8 @@ classdef rx_t < matlab.mixin.Copyable
                         ch_estim_single_TS_symb = ch_estim_single_TS(:, k);
         
                         % zero guards for nice plots
-                        ch_estim_single_TS_symb(1:obj.phy_4_5.numerology.n_guards_bottom) = 0;
-                        ch_estim_single_TS_symb(end-obj.phy_4_5.numerology.n_guards_top+1:end) = 0;
+                        ch_estim_single_TS_symb(1:obj.derived.numerology.n_guards_bottom) = 0;
+                        ch_estim_single_TS_symb(end-obj.derived.numerology.n_guards_top+1:end) = 0;
         
                         plot(-N_subc/2 : 1 : (N_subc/2-1), mag2db(abs(ch_estim_single_TS_symb)));
                     end
@@ -400,6 +368,25 @@ classdef rx_t < matlab.mixin.Copyable
             h = scatterplot(obj.packet_data.x_PDC_rev);
             title("RX Scatterplot");
             set(h, 'WindowStyle', 'Docked');
+        end
+    end
+
+    methods (Hidden = true)
+        function obj = set_example_values(obj)
+            obj.N_RX = 2;
+
+            % can be deactivated by leaving empty
+            obj.sto_fractional_config = 1;
+            obj.sto_residual_config = 1;
+            obj.cfo_residual_config = 1;
+
+            obj.channel_estimation_config.N_closest_DRS_pilots = 8;
+            obj.channel_estimation_config.noise_estim = 1/10^(30/10);   % 30dB SNR
+            obj.channel_estimation_config.f_d_hertz = 20;               % 20Hz Doppler
+            obj.channel_estimation_config.tau_rms_sec = 363e-9;         % 363ns delay spread
+
+            % can be deactivated by leaving empty
+            obj.equalization_detection_config = 1;
         end
     end
 end

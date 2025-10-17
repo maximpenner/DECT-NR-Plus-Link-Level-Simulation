@@ -35,7 +35,6 @@ function [mat_STF_DRS_PCC_PDC, mat_STF_DRS_PCC_PDC_all_streams] = matrix_STF_DRS
                                                                                          physical_resource_mapping_DRS_cell, ...
                                                                                          physical_resource_mapping_PCC_cell, ...
                                                                                          physical_resource_mapping_PDC_cell)
-
     % Technical Specification assumes first index is 0, matlab 1
     MATLAB_INDEX_SHIFT = 1;
     

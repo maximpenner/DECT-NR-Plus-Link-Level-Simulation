@@ -1,20 +1,21 @@
 function [coarse_peak_idx] = coarse_peak_search(verbosity, ...
-                                                pre_fft_config, ...
-                                                samples_antenna, ...
-                                                samples_antenna_required)
+                                                detection_minimum_power_threshold, ...
+                                                detection_threshold_value, ...
+                                                coarse_peak_search_length, ...
+                                                coarse_peak_step, ...
+                                                coarse_peak_movmean, ...
+                                                coarse_peak_threshold, ...
+                                                n_samples_STF_b_os, ...
+                                                n_STF_pattern, ...
+                                                samples_antenna_ch, ...
+                                                samples_antenna_ch_required)
     %% precalculate parameters known at the receiver
 
-    [n_samples_antenna, N_RX] = size(samples_antenna);
+    [n_samples_antenna, N_RX] = size(samples_antenna_ch);
 
-    % number of STF patterns
-    L = pre_fft_config.n_pattern;
+    assert(mod(n_samples_STF_b_os, n_STF_pattern) == 0);
 
-    % length of the STF with oversampling
-    n_samples_STF_os = pre_fft_config.n_samples_STF_b_os;
-
-    assert(mod(n_samples_STF_os, L) == 0);
-
-    M = n_samples_STF_os/L;
+    M = n_samples_STF_b_os/n_STF_pattern;
 
     %% run coarse peak search
 
@@ -31,28 +32,28 @@ function [coarse_peak_idx] = coarse_peak_search(verbosity, ...
     for i=1:1:N_RX
         
         % get samples of this particular antenna
-        samples_antenna_single = samples_antenna_required(:,i);
+        samples_antenna_single = samples_antenna_ch_required(:,i);
 
         % container for detection metric
-        metric = zeros(pre_fft_config.coarse_peak_search_length, 1);
+        metric = zeros(coarse_peak_search_length, 1);
 
         % we continue the search with a much smaller step size
-        for m = 1 : pre_fft_config.coarse_peak_step : pre_fft_config.coarse_peak_search_length
+        for m = 1 : coarse_peak_step : coarse_peak_search_length
 
             % We found the packet too late. This can't happen in a real receiver, but here we have a limited amount of samples.
             % Nevertheless, this should barely ever happen.
-            if m + n_samples_STF_os-1 > n_samples_antenna
+            if m + n_samples_STF_b_os-1 > n_samples_antenna
                 break;
             end
 
             % determine the metric at this sample index
-            metric(m) = lib_rx.lib_pre_fft.coarse_metric(samples_antenna_single(m:m+n_samples_STF_os-1), M, L, pre_fft_config.detection_minimum_power_threshold);
+            metric(m) = lib_sync.coarse_metric(samples_antenna_single(m:m+n_samples_STF_b_os-1), M, n_STF_pattern, detection_minimum_power_threshold);
         end
 
         % warning: if sto_config.coarse_peak.step > 1, we apply the moving average across zeros!
 
         % apply some filtering to smooth the coarse detection
-        metric_mm = movmean(metric, pre_fft_config.coarse_peak_movmean);
+        metric_mm = movmean(metric, coarse_peak_movmean);
 
         % finally we search for the maximum
         [cph,cpi] = max(metric_mm);
@@ -70,8 +71,8 @@ function [coarse_peak_idx] = coarse_peak_search(verbosity, ...
             subplot(2,1,1)
             plot(abs(metric));
   
-            yline(pre_fft_config.detection_threshold_value, 'r');
-            text(0,pre_fft_config.detection_threshold_value + 0.05,'Detection Threshold')
+            yline(detection_threshold_value, 'r');
+            text(0, detection_threshold_value + 0.05, 'Detection Threshold')
 
             xline(cpi, 'r-.');
 
@@ -83,8 +84,8 @@ function [coarse_peak_idx] = coarse_peak_search(verbosity, ...
             subplot(2,1,2)
             plot(abs(metric_mm));
 
-            yline(pre_fft_config.detection_threshold_value, 'r');
-            text(0,pre_fft_config.detection_threshold_value + 0.05,'Detection Threshold')
+            yline(detection_threshold_value, 'r');
+            text(0, detection_threshold_value + 0.05, 'Detection Threshold')
 
             xline(cpi, 'r-.');
             text(cpi,cph,'Coarse Peak')
@@ -101,7 +102,7 @@ function [coarse_peak_idx] = coarse_peak_search(verbosity, ...
     % we have found a peak for each rx antenna, now we have to pick the optimal peak index
 
     % we consider only peaks above a threshold
-    idx_peak_high = coarse_peak_height >= pre_fft_config.coarse_peak_threshold;
+    idx_peak_high = coarse_peak_height >= coarse_peak_threshold;
 
     % remove peaks that are too low
     coarse_peak_height = coarse_peak_height(idx_peak_high);
@@ -119,8 +120,8 @@ function [coarse_peak_idx] = coarse_peak_search(verbosity, ...
         if coarse_peak_idx <= 0
             coarse_peak_idx = 1;
         end
-        if coarse_peak_idx >= pre_fft_config.coarse_peak_search_length
-            coarse_peak_idx = pre_fft_config.coarse_peak_search_length;
+        if coarse_peak_idx >= coarse_peak_search_length
+            coarse_peak_idx = coarse_peak_search_length;
         end
 
     % if we didn't find any packets, assume the peak at 1

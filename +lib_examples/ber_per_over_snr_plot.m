@@ -1,19 +1,21 @@
-clear all;
-close all;
+function [] = ber_per_over_snr_plot()
+    clear all;
+    close all;
+    
+    load('results/var_all.mat');
+    
+    % PCC
+    ber = n_bits_PCC_error./n_bits_PCC_sent;
+    per = n_packets_PCC_error./n_packets_PCC_sent;
+    ber_per_over_snr_plot_for_one_mcs("PCC", mcs, snr_db, ones(size(bps))*2, ones(size(tbs))*tx.config.PLCF_type*40, ber, per);
+    
+    % PDC
+    ber = n_bits_PDC_error./n_bits_PDC_sent;
+    per = n_packets_PDC_error./n_packets_PDC_sent;
+    ber_per_over_snr_plot_for_one_mcs("PDC", mcs, snr_db, bps, tbs, ber, per);
+end
 
-load('results/var_all.mat');
-
-% PCC
-ber = n_bits_PCC_error./n_bits_PCC_sent;
-per = n_packets_PCC_error./n_packets_PCC_sent;
-plot_BER_PER_over_MCS("PCC", mcs, snr_db, ones(size(bps))*2, ones(size(tbs))*tx.tx_config.PLCF_type*40, ber, per);
-
-% PDC
-ber = n_bits_PDC_error./n_bits_PDC_sent;
-per = n_packets_PDC_error./n_packets_PDC_sent;
-plot_BER_PER_over_MCS("PDC", mcs, snr_db, bps, tbs, ber, per);
-
-function [] = plot_BER_PER_over_MCS(prefix, mcs, snr_db, bps, tbs, ber, per)
+function [] = ber_per_over_snr_plot_for_one_mcs(prefix, mcs, snr_db, bps, tbs, ber, per)
 
     % plot configuration
     colors = [0,      0.4470, 0.7410;...
@@ -42,7 +44,7 @@ function [] = plot_BER_PER_over_MCS(prefix, mcs, snr_db, bps, tbs, ber, per)
     figure()
     clf()
     for cnt = 1:1:numel(mcs)
-        plot_ber_references("EbN0", mcs(cnt), snr_db, bps(cnt), tbs(cnt), colors(cnt, :), K);
+        ber_references_plot("EbN0", mcs(cnt), snr_db, bps(cnt), tbs(cnt), colors(cnt, :), K);
     
         EbN0_vec = db2pow(snr_db)/bps(cnt);
         EbN0_dB_vec = pow2db(EbN0_vec);
@@ -64,7 +66,7 @@ function [] = plot_BER_PER_over_MCS(prefix, mcs, snr_db, bps, tbs, ber, per)
     figure()
     clf()
     for cnt = 1:1:numel(mcs)
-        plot_ber_references("SNR", mcs(cnt), snr_db, bps(cnt), tbs(cnt), colors(cnt, :), K);
+        ber_references_plot("SNR", mcs(cnt), snr_db, bps(cnt), tbs(cnt), colors(cnt, :), K);
     
         str = append('MCS=', num2str(mcs(cnt)), ', TBS=', num2str(tbs(cnt)));
         semilogy(snr_db, ber(cnt,:), '-.o','DisplayName',str, 'Color', colors(cnt, :), 'MarkerSize', marker_size, 'MarkerFaceColor', colors(cnt, :));
@@ -99,7 +101,7 @@ function [] = plot_BER_PER_over_MCS(prefix, mcs, snr_db, bps, tbs, ber, per)
     savefig("results/" + prefix + "_PER_SNR.fig")
 end
 
-function [] = plot_ber_references(reference, mcs, snr_db, bps, tbs, colors, K)
+function [] = ber_references_plot(reference, mcs, snr_db, bps, tbs, colors, K)
     % convert subcarrier snr to EbN0
     %
     %   S/N = R_b * E_b / (B * N0)
@@ -125,47 +127,47 @@ function [] = plot_ber_references(reference, mcs, snr_db, bps, tbs, colors, K)
 
     % AWGN, diversity order 1
     if M==2
-        ber_rayleigh = berawgn(EbN0_dB_vec,'psk',M,1);
+        ber_Rayleigh = berawgn(EbN0_dB_vec,'psk',M,1);
     else
-        ber_rayleigh = berawgn(EbN0_dB_vec,'qam',M,1);
+        ber_Rayleigh = berawgn(EbN0_dB_vec,'qam',M,1);
     end
     str = append('MCS=',num2str(mcs),', TBS=',num2str(tbs), ', AWGN');
-    semilogy(reference, ber_rayleigh,'-','DisplayName',str, 'Color', colors);
+    semilogy(reference, ber_Rayleigh,'-','DisplayName',str, 'Color', colors);
     hold on
 
     % Rayleigh diversity order 1
     if M==2
-        ber_rayleigh = berfading(EbN0_dB_vec,'psk',M,1);
+        ber_Rayleigh = berfading(EbN0_dB_vec,'psk',M,1);
     else
-        ber_rayleigh = berfading(EbN0_dB_vec,'qam',M,1);
+        ber_Rayleigh = berfading(EbN0_dB_vec,'qam',M,1);
     end
-    str = append('MCS=',num2str(mcs),', TBS=',num2str(tbs), ', rayleigh');
-    semilogy(reference, ber_rayleigh,'--','DisplayName',str, 'Color', colors);
+    str = append('MCS=',num2str(mcs),', TBS=',num2str(tbs), ', Rayleigh');
+    semilogy(reference, ber_Rayleigh,'--','DisplayName',str, 'Color', colors);
 
     % Rayleigh diversity order 2
     if M==2
-        ber_rayleigh = berfading(EbN0_dB_vec,'psk',M,2);
+        ber_Rayleigh = berfading(EbN0_dB_vec,'psk',M,2);
     else
-        ber_rayleigh = berfading(EbN0_dB_vec,'qam',M,2);
+        ber_Rayleigh = berfading(EbN0_dB_vec,'qam',M,2);
     end
-    str = append('MCS=',num2str(mcs),', TBS=',num2str(tbs), ', rayleigh div=2');
-    semilogy(reference, ber_rayleigh,'-.','DisplayName',str, 'Color', colors);
+    str = append('MCS=',num2str(mcs),', TBS=',num2str(tbs), ', Rayleigh div=2');
+    semilogy(reference, ber_Rayleigh,'-.','DisplayName',str, 'Color', colors);
 
     % Rician diversity order 1
     if M==2
-        ber_rayleigh = berfading(EbN0_dB_vec,'psk',M,1,K);
+        ber_Rayleigh = berfading(EbN0_dB_vec,'psk',M,1,K);
     else
-        ber_rayleigh = berfading(EbN0_dB_vec,'qam',M,1,K);
+        ber_Rayleigh = berfading(EbN0_dB_vec,'qam',M,1,K);
     end
-    str = append('MCS=',num2str(mcs),', TBS=',num2str(tbs), ', rician');
-    semilogy(reference, ber_rayleigh,'-o','DisplayName',str, 'Color', colors);
+    str = append('MCS=',num2str(mcs),', TBS=',num2str(tbs), ', Rician');
+    semilogy(reference, ber_Rayleigh,'-o','DisplayName',str, 'Color', colors);
     
     % Rician diversity order 1
     if M==2
-        ber_rayleigh = berfading(EbN0_dB_vec,'psk',M,2,K);
+        ber_Rayleigh = berfading(EbN0_dB_vec,'psk',M,2,K);
     else
-        ber_rayleigh = berfading(EbN0_dB_vec,'qam',M,2,K);
+        ber_Rayleigh = berfading(EbN0_dB_vec,'qam',M,2,K);
     end
-    str = append('MCS=',num2str(mcs),', TBS=',num2str(tbs), ', rician div=2');
-    semilogy(reference, ber_rayleigh,'-d','DisplayName',str, 'Color', colors);
+    str = append('MCS=',num2str(mcs),', TBS=',num2str(tbs), ', Rician div=2');
+    semilogy(reference, ber_Rayleigh,'-d','DisplayName',str, 'Color', colors);
 end

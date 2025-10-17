@@ -1,13 +1,9 @@
-function [] = loop_over_tx_config()
-
+function [] = loop_over_config()
     % Note that some errors are to be expected. For example,
     % there are different numbers of codebook indices for the
     % antenna configurations, and some packet lengths for 1
     % or 2 antennas are too short when using a configuration
     % with 4 or 8 antennas.
-
-    % configurations are initialized with exemplary values
-    tx_config = lib_types.tx_config_t();
 
     % test range
     u_vec                   = [1,2,4,8];
@@ -24,11 +20,11 @@ function [] = loop_over_tx_config()
     network_id_vec          = randi([1 2^32], 1, 1);
     verbosity               = 0;
 
-    cnt = 0;
-
     % test a large selection of packet configurations
     for u = u_vec
-        for b = b_vec
+        %for b_vec_idx = 1:numel(b_vec)
+        parfor b_vec_idx = 1:numel(b_vec)
+            b = b_vec(b_vec_idx);
             for PacketLengthType = PacketLengthType_vec
                 for PacketLength = PacketLength_vec
                     for tm_mode_0_to_11 = tm_mode_0_to_11_vec
@@ -40,39 +36,40 @@ function [] = loop_over_tx_config()
                                             for rv = rv_vec
                                                 for network_id = network_id_vec
 
+                                                    % configurations are initialized with exemplary values
+                                                    config = lib_tx.config_t();
+
                                                     % overwrite
-                                                    tx_config.u = u;
-                                                    tx_config.b = b;
-                                                    tx_config.PacketLengthType = PacketLengthType;
-                                                    tx_config.PacketLength = PacketLength;
-                                                    tx_config.tm_mode_0_to_11 = tm_mode_0_to_11;
-                                                    tx_config.mcs_index = mcs_index;
-                                                    tx_config.Z = Z;
-                                                    tx_config.oversampling = oversampling;
-                                                    tx_config.codebook_index = codebook_index;
-                                                    tx_config.PLCF_type = PLCF_type;
-                                                    tx_config.rv = rv;
-                                                    tx_config.network_id = de2bi(network_id,32,'left-msb');
-                                                    tx_config.verbosity = verbosity;
+                                                    config.u = u;
+                                                    config.b = b;
+                                                    config.PacketLengthType = PacketLengthType;
+                                                    config.PacketLength = PacketLength;
+                                                    config.tm_mode_0_to_11 = tm_mode_0_to_11;
+                                                    config.mcs_index = mcs_index;
+                                                    config.Z = Z;
+                                                    config.oversampling = oversampling;
+                                                    config.codebook_index = codebook_index;
+                                                    config.PLCF_type = PLCF_type;
+                                                    config.rv = rv;
+                                                    config.network_id = de2bi(network_id,32,'left-msb');
+                                                    config.verbosity = verbosity;
                                                     
                                                     % test channel coding
                                                     try
-                                                        result = lib_test.test_channel_coding_pdc(tx_config);
+                                                        result = lib_regression.test_channel_coding_pdc(config);
                                                         assert(result.n_bit_errors == 0)
                                                     catch ME
-                                                        fprintf("Error for cnt=%d. Message: %s\n", cnt, ME.message);
-                                                        return;
+                                                        disp(config);
+                                                        fprintf("Error for cnt=%d. Message: %s\n\n", ME.message);
                                                     end
                         
                                                     % test packet generation
                                                     try
-                                                        lib_test.test_tx_packet(tx_config);
+                                                        lib_regression.test_single_packet(config);
                                                     catch ME
-                                                        fprintf("Error for cnt=%d. Message: %s\n", cnt, ME.message);
-                                                        return;
+                                                        disp(config);
+                                                        fprintf("Error for cnt=%d. Message: %s\n\n", ME.message);
                                                     end
-
-                                                    cnt = cnt + 1;
                                                 end
                                             end
                                         end

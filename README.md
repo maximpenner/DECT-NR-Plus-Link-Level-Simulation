@@ -12,8 +12,8 @@ DECT NR+ is a non-cellular radio standard and part of [5G as defined by ITU-R](h
 
 1. [Directories](#directories)
 2. [Software Requirements](#software-requirements)
-3. [Main Scripts](#capabilities)
-4. [Exemplary Results](#exemplary-results)
+3. [Example Simulation](#example-simulation)
+4. [Example Simulation Results](#example-simulation-results)
     1. [Packet Error Rates](#packet-error-rates)
     2. [Resource Mapping](#resource-mapping)
     3. [Channel Interpolation](#channel-interpolation)
@@ -35,10 +35,11 @@ Advanced Topics
     ├─ +lib_7_transmission_encoding/        ETSI TS 103 636-3, Clause 7
     ├─ +lib_Annex_A/                        ETSI TS 103 636-3, Annex A
     ├─ +lib_channel/                        wireless channel
-    ├─ +lib_rx/                             receiver functionality
-    │   ├─ +lib_pre_fft/                    pre-fft synchronization in time domain
-    ├─ +lib_test/                           regression testing
-    ├─ +lib_types/                          basic types for TX and RX
+    ├─ +lib_examples/                       basic examples
+    ├─ +lib_regression/                     regression testing
+    ├─ +lib_rx/                             receiver
+    ├─ +lib_sync/                           pre-fft synchronization in time domain
+    ├─ +lib_tx/                             transmitter
     ├─ +lib_util/                           utility
     ├─ pics/                                pictures in this README.md
 
@@ -46,13 +47,15 @@ Advanced Topics
 
 The Matlab LTE Toolbox is required for channel coding, the Communications Toolbox for wireless channel simulation, and the Parallel Computing Toolbox for reducing simulation time.
 
-## Main Scripts
+## Example Simulation
 
-- **main_single_packet.m**: Simple example demonstrating how to use the simulation environment.
-- **main_BER_PER_over_MCS.m**: Parallel simulation of bit and packet error rates over MCS.
-- **main_BER_PER_over_MCS_plot.m**: Plot results of **main_BER_PER_over_MCS.m** for PDC.
+Basic examples can be found in the directory [+lib_examples](+lib_examples):
 
-## Exemplary Results
+- **single_packet.m**: Basic example demonstrating how to use the simulation environment.
+- **ber_per_over_snr.m**: Parallel simulation of bit and packet error rates over MCS.
+- **ber_per_over_snr_plot.m**: Plot results of **ber_per_over_snr.m** for PDC.
+
+## Example Simulation Results
 
 ### Packet Error Rates
 PERs of a SIMO (two receive antennas) system for different MCS over SNR in a Rician fading channel.

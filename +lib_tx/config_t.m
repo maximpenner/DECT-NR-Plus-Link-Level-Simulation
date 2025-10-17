@@ -1,6 +1,7 @@
-classdef tx_config_t
+classdef config_t < matlab.mixin.Copyable
     
     properties
+        % The following variables are the minimal set of variables that define the complete structure and size of a DECT NR+ packet.
         u                   % mu = 1, 2, 4 or 8
         b                   % beta = 1, 2, 4, 8, 12 or 16
         PacketLengthType    % 0 for subslots, 1 for slots
@@ -11,14 +12,15 @@ classdef tx_config_t
         oversampling        % By how much do we oversample our OFDM packet compared to critical sampling (insert zeros at spectrum edges before IFFT)?
         codebook_index      % 6.3.4, any value other than 0 makes packet beamformed, throws error if out of bound (depends on tm_mode_0_to_11)
         PLCF_type           % Type 1 is 40 bits, Type 2 is 80 bits
-        rv                  % HARQ version, values range from 0, 1, 2 to 3 (right HARQ retransmission order is 0 2 3 1)
+        rv                  % HARQ version, values range from 0, 1, 2 to 3 (right HARQ re-transmission order is 0 2 3 1)
         network_id          % 7.6.6 must be given as a 32 bit vector with network_id(1) being the MSB, network_id must be known for scrambler on PHY
         verbosity           % 0 no plots, >=1 TX/RX/CH plots, >=2 RX synchronization plots
     end
     
     methods
-        function obj = tx_config_t()
+        function obj = config_t()
             obj = obj.set_example_values();
+            
             assert(obj.is_valid());
         end
 

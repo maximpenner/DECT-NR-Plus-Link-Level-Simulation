@@ -1,13 +1,14 @@
-function [cfo_report] = cfo_integer(config, ...
-                                    samples_antenna_stf_at_coarse_peak_cfo_fractional, ...
-                                    STF_templates_freq_domain, ...
+function [cfo_report] = cfo_integer(cfo_integer_candidate_values, ...
+                                    oversampling, ...
                                     N_b_DFT, ...
-                                    oversampling)
+                                    n_samples_STF_cp_only_b_os, ...
+                                    stf_templates_freq_domain, ...
+                                    samples_antenna_stf_at_coarse_peak_cfo_fractional)
 
     %% transform from time domain samples into frequency domain
 
     % remove cp
-    stf_no_cp = samples_antenna_stf_at_coarse_peak_cfo_fractional(config.n_samples_STF_cp_only_b_os + 1 : end, :);
+    stf_no_cp = samples_antenna_stf_at_coarse_peak_cfo_fractional(n_samples_STF_cp_only_b_os + 1 : end, :);
 
     % transform into frequency domain
     stf_freq_os = fft(stf_no_cp);
@@ -15,7 +16,7 @@ function [cfo_report] = cfo_integer(config, ...
 
     %% at this point, we don't know N_eff_TX yet, so we can use any STF template as we have to perform a simple power detection
 
-    STF_values_freq_domain = STF_templates_freq_domain{1};
+    STF_values_freq_domain = stf_templates_freq_domain{1};
 
     % Matlab saves mirrored version compared to DECT-2020 NR standard
     STF_values_freq_domain = flipud(STF_values_freq_domain);
@@ -30,7 +31,7 @@ function [cfo_report] = cfo_integer(config, ...
 
     % one metric value per possible integer CFO per RX antenna
     N_RX = size(samples_antenna_stf_at_coarse_peak_cfo_fractional, 2);
-    metric = zeros(numel(config.cfo_integer_candidate_values), N_RX);
+    metric = zeros(numel(cfo_integer_candidate_values), N_RX);
 
     % go over each rx antenna
     for i=1:1:N_RX
@@ -39,7 +40,7 @@ function [cfo_report] = cfo_integer(config, ...
 
         % try for each possible frequency offset
         idx = 1;
-        for cfo_candidate = config.cfo_integer_candidate_values
+        for cfo_candidate = cfo_integer_candidate_values
 
             % Shift spectrum:
             %
@@ -69,5 +70,5 @@ function [cfo_report] = cfo_integer(config, ...
     [~, CFO_report_integer_index] = max(metric);
 
     % extract corresponding CFO value
-    cfo_report = config.cfo_integer_candidate_values(CFO_report_integer_index);
+    cfo_report = cfo_integer_candidate_values(CFO_report_integer_index);
 end

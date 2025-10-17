@@ -1,31 +1,24 @@
 function [N_eff_TX_report, max_idx_fine] = fine_peak_search(verbosity, ...
-                                                            pre_fft_config, ...
-                                                            N_b_DFT, ...
-                                                            samples_antenna, ...
-                                                            samples_antenna_required, ...
-                                                            STF_templates, ...
                                                             oversampling, ...
-                                                            coarse_sync_idx, ...
-                                                            fractional_cfo_report, ...
-                                                            integer_cfo_report)
+                                                            N_b_DFT, ...
+                                                            coarse_peak_idx, ...
+                                                            cfo_fractional_report, ...
+                                                            cfo_integer_report, ...
+                                                            fine_peak_search_area, ...
+                                                            n_samples_STF_b_os, ...
+                                                            stf_templates, ...
+                                                            samples_antenna_ch, ...
+                                                            samples_antenna_ch_required)
     %% precalculate parameters known at the receiver
 
-    [~, N_RX] = size(samples_antenna);
-
-    % number of STF patterns
-    L = pre_fft_config.n_pattern;
-
-    % length of the STF with oversampling
-    n_samples_STF_os = pre_fft_config.n_samples_STF_b_os;
-
-    assert(mod(n_samples_STF_os, L) == 0);
+    [~, N_RX] = size(samples_antenna_ch);
 
     %% perform cross-correlation with STF templates for N_eff_TX and fine synchronization pointer determination
 
     % we have a coarse sync point, we have also determined the fractional + integer CFO
 
     % first create a time base which we will use to correct the fractional + integer CFO
-    time_base = 0:1:(2*pre_fft_config.fine_peak_search_area + n_samples_STF_os - 1);
+    time_base = 0:1:(2*fine_peak_search_area + n_samples_STF_b_os - 1);
     time_base = time_base';
 
     % N_eff_TX = {1,2,4,8}, for each we will check one STF, search range can be limited by radio device class
@@ -33,29 +26,29 @@ function [N_eff_TX_report, max_idx_fine] = fine_peak_search(verbosity, ...
     metric_maxima_index = zeros(4, N_RX);
 
     % every antenna has the same search range
-    search_area_min = max(1, coarse_sync_idx - pre_fft_config.fine_peak_search_area);
-    search_area_max = coarse_sync_idx + pre_fft_config.fine_peak_search_area;
-    n_search_area = search_area_max - search_area_min + n_samples_STF_os;
+    search_area_min = max(1, coarse_peak_idx - fine_peak_search_area);
+    search_area_max = coarse_peak_idx + fine_peak_search_area;
+    n_search_area = search_area_max - search_area_min + n_samples_STF_b_os;
 
     for i=1:1:N_RX
         
         % get the samples of this particular antenna
-        samples_antenna_single = samples_antenna_required(:,i);
+        samples_antenna_single = samples_antenna_ch_required(:,i);
         
         % try every possible stf type
-        for j=1:1:numel(STF_templates.time_domain)
+        for j=1:1:numel(stf_templates.time_domain)
 
             % stf templates in time domain are already oversampled
-            STF_template_candidate = cell2mat(STF_templates.time_domain(j));
+            STF_template_candidate = cell2mat(stf_templates.time_domain(j));
 
             % normalize power of stf
             STF_template_candidate = STF_template_candidate/rms(STF_template_candidate);
 
             % extract the search range in which we will be looking for the fine sync peaks
-            samples_antenna_single_search_range = samples_antenna_single(search_area_min : search_area_max + n_samples_STF_os - 1, :);
+            samples_antenna_single_search_range = samples_antenna_single(search_area_min : search_area_max + n_samples_STF_b_os - 1, :);
 
             % derotate samples in search range
-            total_cfo = fractional_cfo_report + integer_cfo_report * 1/(N_b_DFT*oversampling);
+            total_cfo = cfo_fractional_report + cfo_integer_report * 1/(N_b_DFT*oversampling);
             samples_antenna_single_search_range = samples_antenna_single_search_range.*exp(1i*2*pi*(-total_cfo)*time_base(1:n_search_area));
 
             % perform a cross correlation between the samples and the stf template
