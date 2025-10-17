@@ -10,8 +10,8 @@ DECT NR+ is a non-cellular radio standard and part of [5G as defined by ITU-R](h
 
 ## Table of Contents
 
-1. [Directories](#directories)
-2. [Software Requirements](#software-requirements)
+1. [Software Requirements](#software-requirements)
+2. [Directories and Files](#directories-and-files)
 3. [Example Simulation](#example-simulation)
 4. [Example Simulation Results](#example-simulation-results)
     1. [Packet Error Rates](#packet-error-rates)
@@ -25,31 +25,31 @@ Advanced Topics
 1. [BER and PER Performance References](#ber-and-per-performance-references)
 2. [Synchronization](#synchronization)
 
-## Directories
-
-    ├─ .vscode/                             VS Code settings
-    ├─ +lib_4_physical_layer_principles/    ETSI TS 103 636-3, Clause 4
-    ├─ +lib_5_physical_layer_transmissions/ ETSI TS 103 636-3, Clause 5
-    ├─ +lib_6_generic_procedures/           ETSI TS 103 636-3, Clause 6
-    │   ├─ +lib_cc_rm_i/                    channel coding, rate matching, interleaving
-    ├─ +lib_7_transmission_encoding/        ETSI TS 103 636-3, Clause 7
-    ├─ +lib_Annex_A/                        ETSI TS 103 636-3, Annex A
-    ├─ +lib_channel/                        wireless channel
-    ├─ +lib_examples/                       basic examples
-    ├─ +lib_regression/                     regression testing
-    ├─ +lib_rx/                             receiver
-    ├─ +lib_sync/                           pre-fft synchronization in time domain
-    ├─ +lib_tx/                             transmitter
-    ├─ +lib_util/                           utility
-    ├─ pics/                                pictures in this README.md
-
 ## Software Requirements
 
 The Matlab LTE Toolbox is required for channel coding, the Communications Toolbox for wireless channel simulation, and the Parallel Computing Toolbox for reducing simulation time.
 
+## Directories and Files
+
+    ├─ .vscode/                                   VS Code settings
+    ├─ +dectnrp_4_physical_layer_principles/      ETSI TS 103 636-3, Clause 4
+    ├─ +dectnrp_5_physical_layer_transmissions/   ETSI TS 103 636-3, Clause 5
+    ├─ +dectnrp_6_generic_procedures/             ETSI TS 103 636-3, Clause 6
+    │   ├─ +lib_cc_rm_i/                          channel coding, rate matching, interleaving
+    ├─ +dectnrp_7_transmission_encoding/          ETSI TS 103 636-3, Clause 7
+    ├─ +dectnrp_Annex_A/                          ETSI TS 103 636-3, Annex A
+    ├─ +dectnrp_channel/                          wireless channel
+    ├─ +dectnrp_examples/                         basic examples
+    ├─ +dectnrp_regression/                       regression testing
+    ├─ +dectnrp_rx/                               receiver
+    ├─ +dectnrp_sync/                             pre-fft synchronization in time domain
+    ├─ +dectnrp_tx/                               transmitter
+    ├─ +dectnrp_util/                             utility
+    ├─ pics/                                      pictures in this README.md
+
 ## Example Simulation
 
-Basic examples can be found in the directory [+lib_examples](+lib_examples):
+Basic examples can be found in the directory [+dectnrp_examples](+dectnrp_examples):
 
 - **single_packet.m**: Basic example demonstrating how to use the simulation environment.
 - **ber_per_over_snr.m**: Parallel simulation of bit and packet error rates over MCS.
@@ -60,19 +60,19 @@ Basic examples can be found in the directory [+lib_examples](+lib_examples):
 ### Packet Error Rates
 PERs of a SIMO (two receive antennas) system for different MCS over SNR in a Rician fading channel.
 <p align="center">
-  <img src="./pics/PER_over_SNR.jpg" width="700">
+  <img src="./pics/PER_over_SNR.jpg" style="width: 75%; background-color: transparent;" alt="./pics/PER_over_SNR.jpg"/>
 </p>
 
 ### Resource Mapping
 Resource mapping of STF, DRS, PCC and PDC in the time-frequency lattice.
 <p align="center">
-  <img src="./pics/Resource_Mapping.jpg" width="700">
+  <img src="./pics/Resource_Mapping.jpg" style="width: 75%; background-color: transparent;" alt="./pics/Resource_Mapping.jpg"/>
 </p>
 
 ### Channel Interpolation
 Interpolated average path gains for a doubly selective channel.
 <p align="center">
-  <img src="./pics/Channel_Interpolation.jpg" width="700">
+  <img src="./pics/Channel_Interpolation.jpg" style="width: 75%; background-color: transparent;" alt="./pics/Channel_Interpolation.jpg"/>
 </p>
 
 ## Known Issues
