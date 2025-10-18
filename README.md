@@ -1,6 +1,8 @@
-# DECT-2020 New Radio Link-Level Simulation
+# DECT NR+ Link-Level Simulation
 
-This repository contains a Matlab link-level simulation environment for DECT NR+ ([ETSI TS 103 636, Part 1 to 5](https://www.etsi.org/committee/1394-dect)) with the following features:
+[![File Exchange Badge](https://www.mathworks.com/matlabcentral/images/matlab-file-exchange.svg)](https://de.mathworks.com/matlabcentral/fileexchange/182338-dect-nr-plus-link-level-simulation) [![GitHub top language](https://img.shields.io/github/languages/top/mathworks/climatedatastore)](https://matlab.mathworks.com/)
+
+This repository contains a Matlab link-level simulation of DECT NR+ ([ETSI TS 103 636, Part 1 to 5](https://www.etsi.org/committee/1394-dect)) with the following features:
 
 - **Transmitter**: complete physical layer, i.e. all bandwidths, MIMO modes, channel coding etc.
 - **Receiver**: core physical layer functionality, i.e. packet detection, STO and CFO correction, channel estimation, channel decoding, MRC, transmit diversity etc.
@@ -10,28 +12,32 @@ DECT NR+ is a non-cellular radio standard and part of [5G as defined by ITU-R](h
 
 ## Table of Contents
 
-1. [Software Requirements](#software-requirements)
-2. [Directories and Files](#directories-and-files)
-3. [Example Simulation](#example-simulation)
-4. [Example Simulation Results](#example-simulation-results)
+1. [Starting](#starting)
+2. [Software Requirements](#software-requirements)
+3. [Directories](#directories)
+4. [Example Simulation](#example-simulation)
+5. [Example Simulation Results](#example-simulation-results)
     1. [Packet Error Rates](#packet-error-rates)
     2. [Resource Mapping](#resource-mapping)
     3. [Channel Interpolation](#channel-interpolation)
-5. [Known Issues](#known-issues)
-6. [Future Work](#future-work)
+6. [Known Issues](#known-issues)
+7. [Future Work](#future-work)
 
 Advanced Topics
 
 1. [BER and PER Performance References](#ber-and-per-performance-references)
 2. [Synchronization](#synchronization)
 
+## Starting
+
+This repository can either be used locally as a standalone project, or packaged and installed system-wide as a Matlab toolbox. When used as a toolbox, name conflicts are avoided due to this project being organized in different namespaces whose names begin with the prefix **dectnrp_**.
+
 ## Software Requirements
 
-The Matlab LTE Toolbox is required for channel coding, the Communications Toolbox for wireless channel simulation, and the Parallel Computing Toolbox for reducing simulation time.
+The Matlab Communications Toolbox is required for wireless channel simulation, the LTE Toolbox for channel coding, and the Parallel Computing Toolbox for reducing simulation time.
 
-## Directories and Files
+## Directories
 
-    ├─ .vscode/                                   VS Code settings
     ├─ +dectnrp_4_physical_layer_principles/      ETSI TS 103 636-3, Clause 4
     ├─ +dectnrp_5_physical_layer_transmissions/   ETSI TS 103 636-3, Clause 5
     ├─ +dectnrp_6_generic_procedures/             ETSI TS 103 636-3, Clause 6
@@ -45,13 +51,14 @@ The Matlab LTE Toolbox is required for channel coding, the Communications Toolbo
     ├─ +dectnrp_sync/                             pre-fft synchronization in time domain
     ├─ +dectnrp_tx/                               transmitter
     ├─ +dectnrp_util/                             utility
-    ├─ pics/                                      pictures in this README.md
+    ├─ .vscode/                                   VS Code settings
+    ├─ docs/                                      pictures in this README.md
 
 ## Example Simulation
 
 Basic examples can be found in the directory [+dectnrp_examples](+dectnrp_examples):
 
-- **single_packet.m**: Basic example demonstrating how to use the simulation environment.
+- **single_packet.m**: Basic example demonstrating how to use the simulation.
 - **ber_per_over_snr.m**: Parallel simulation of bit and packet error rates over MCS.
 - **ber_per_over_snr_plot.m**: Plot results of **ber_per_over_snr.m** for PDC.
 
@@ -60,19 +67,19 @@ Basic examples can be found in the directory [+dectnrp_examples](+dectnrp_exampl
 ### Packet Error Rates
 PERs of a SIMO (two receive antennas) system for different MCS over SNR in a Rician fading channel.
 <p align="center">
-  <img src="./pics/PER_over_SNR.jpg" style="width: 75%; background-color: transparent;" alt="./pics/PER_over_SNR.jpg"/>
+  <img src="./docs/PER_over_SNR.jpg" style="width: 75%; background-color: transparent;" alt="./docs/PER_over_SNR.jpg"/>
 </p>
 
 ### Resource Mapping
 Resource mapping of STF, DRS, PCC and PDC in the time-frequency lattice.
 <p align="center">
-  <img src="./pics/Resource_Mapping.jpg" style="width: 75%; background-color: transparent;" alt="./pics/Resource_Mapping.jpg"/>
+  <img src="./docs/Resource_Mapping.jpg" style="width: 75%; background-color: transparent;" alt="./docs/Resource_Mapping.jpg"/>
 </p>
 
 ### Channel Interpolation
 Interpolated average path gains for a doubly selective channel.
 <p align="center">
-  <img src="./pics/Channel_Interpolation.jpg" style="width: 75%; background-color: transparent;" alt="./pics/Channel_Interpolation.jpg"/>
+  <img src="./docs/Channel_Interpolation.jpg" style="width: 75%; background-color: transparent;" alt="./docs/Channel_Interpolation.jpg"/>
 </p>
 
 ## Known Issues
@@ -89,7 +96,6 @@ Interpolated average path gains for a doubly selective channel.
 - [ ] implement basic MIMO algorithms for N<sub>SS</sub> > 1
 - [ ] residual STO estimation based on STF and DRS
 - [ ] residual CFO estimation based on STF and DRS
-- [ ] transform into Matlab toolbox
 
 ## BER and PER Performance References
 
@@ -106,12 +112,12 @@ Alternatively, since the introduction of the cover sequence in V1.5.1, a simplif
 At high SNR, the normalized coarse metric has the following shape. Note that the metric has a much smaller amplitude at low SNRs (<6dB).
 Coarse Metric with Cover Sequence | Coarse Metric without Cover Sequence
 :--------------------------------:|:-----------------------------------:
-![](./pics/Sync_Metric_Coarse_SNR_high.jpg)  |  ![](./pics/Sync_Metric_Coarse_old.jpg)
+![](./docs/Sync_Metric_Coarse_SNR_high.jpg)  |  ![](./docs/Sync_Metric_Coarse_old.jpg)
 
 The fine metric has the following shape.
 Fine Metric with Cover Sequence | Fine Metric without Cover Sequence
 :--------------------------------:|:-----------------------------------:
-![](./pics/Sync_Metric_Fine.jpg)  |  ![](./pics/Sync_Metric_Fine_old.jpg)
+![](./docs/Sync_Metric_Fine.jpg)  |  ![](./docs/Sync_Metric_Fine_old.jpg)
 
 Thanks to the cover sequence, only a single fine peak remains without significant secondary peaks. Without the cover sequence, there are significant secondary peaks that can exceed the main peak at low SNR or high CFO. For this reason, in this repository, the CFO is first corrected at the coarse peak before the cross-correlation is applied. The shape of the coarse metric is not affected by a CFO.
 
