@@ -5,9 +5,12 @@ classdef sync_t < matlab.mixin.Copyable
         config;
         derived;
 
+        % STF templates in time and frequency domain
         n_samples_STF_b_os;
         n_samples_STF_cp_only_b_os;
         stf_templates;
+
+        lpf_enable;
 
         detection_minimum_power_threshold;
         detection_threshold_step;
@@ -57,7 +60,7 @@ classdef sync_t < matlab.mixin.Copyable
             %% low-pass filtering 
 
             % If oversampling is used, we have to remove out-of-band noise. Otherwise synchronization in time domain is impaired.
-            if obj.config.oversampling > 1
+            if obj.lpf_enable && obj.config.oversampling > 1
                 samples_antenna_ch = dectnrp_sync.lpf(samples_antenna_ch, obj.config.oversampling);
             end
         
@@ -204,6 +207,9 @@ classdef sync_t < matlab.mixin.Copyable
             obj.n_samples_STF_cp_only_b_os = obj.n_samples_STF_b_os - 64*obj.config.b*obj.config.oversampling;
 
             obj.stf_templates = dectnrp_rx.stf_templates(obj.config);
+
+            %% low-pass filtering to remove out-of-band noise
+            obj.lpf_enable = true;
         
             %% STF Detection based on auto-correlation of incoming samples
         
