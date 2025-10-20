@@ -1,4 +1,4 @@
-function [x_PDC_rev] = equalization_SISO_zf(antenna_streams_mapped_rev, ch_estim, physical_resource_mapping_PDC_cell)
+function [x_PDC_rev] = SISO_zf(antenna_streams_mapped_rev, ch_estim, physical_resource_mapping_PDC_cell)
 
     assert(isscalar(antenna_streams_mapped_rev) && isscalar(ch_estim));
     

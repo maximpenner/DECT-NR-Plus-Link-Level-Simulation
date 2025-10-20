@@ -49,6 +49,7 @@ The Matlab Communications Toolbox is required for wireless channel simulation, t
     ├─ +dectnrp_regression/                       regression testing
     ├─ +dectnrp_rx/                               receiver
     │   ├─ +channel_estimation                    channel estimation based on STF and DRS
+    │   ├─ +equalization_detection                symbol equalization/detection
     ├─ +dectnrp_sync/                             pre-fft synchronization in time domain
     ├─ +dectnrp_tx/                               transmitter
     ├─ +dectnrp_util/                             utility
@@ -95,8 +96,8 @@ Interpolated average path gains for a doubly selective channel.
 - [ ] implement limited number of soft bits
 - [ ] add 1024-QAM
 - [ ] implement basic MIMO algorithms for N<sub>SS</sub> > 1
-- [ ] residual STO estimation based on STF and DRS
 - [ ] residual CFO estimation based on STF and DRS
+- [ ] residual STO estimation based on STF and DRS
 
 ## BER and PER Performance References
 

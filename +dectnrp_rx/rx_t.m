@@ -184,21 +184,21 @@ classdef rx_t < matlab.mixin.Copyable
                 % SISO
                 if N_eff_TX == 1 && obj.N_RX ==1
 
-                    x_PCC_rev = dectnrp_rx.equalization_SISO_zf(antenna_streams_mapped_rev, ch_estim, physical_resource_mapping_PCC_cell);
-                    x_PDC_rev = dectnrp_rx.equalization_SISO_zf(antenna_streams_mapped_rev, ch_estim, physical_resource_mapping_PDC_cell);
+                    x_PCC_rev = dectnrp_rx.equalization_detection.SISO_zf(antenna_streams_mapped_rev, ch_estim, physical_resource_mapping_PCC_cell);
+                    x_PDC_rev = dectnrp_rx.equalization_detection.SISO_zf(antenna_streams_mapped_rev, ch_estim, physical_resource_mapping_PDC_cell);
 
                 % SIMO (Maximum Ratio Combining (MRC))
                 elseif N_eff_TX == 1 && obj.N_RX > 1
 
-                    x_PCC_rev = dectnrp_rx.equalization_SIMO_mrc(antenna_streams_mapped_rev, ch_estim, physical_resource_mapping_PCC_cell, obj.N_RX);
-                    x_PDC_rev = dectnrp_rx.equalization_SIMO_mrc(antenna_streams_mapped_rev, ch_estim, physical_resource_mapping_PDC_cell, obj.N_RX);
+                    x_PCC_rev = dectnrp_rx.equalization_detection.SIMO_mrc(antenna_streams_mapped_rev, ch_estim, physical_resource_mapping_PCC_cell, obj.N_RX);
+                    x_PDC_rev = dectnrp_rx.equalization_detection.SIMO_mrc(antenna_streams_mapped_rev, ch_estim, physical_resource_mapping_PDC_cell, obj.N_RX);
 
                 % MISO (Alamouti) and MIMO (Alamouti + MRC and other modes)
                 else
                     % Transmit diversity precoding
                     if ismember(mode_0_to_11, [1,5,10]) == true
-                        x_PCC_rev = dectnrp_rx.equalization_MISO_MIMO_alamouti_mrc(antenna_streams_mapped_rev, ch_estim, obj.N_RX, N_eff_TX, physical_resource_mapping_PCC_cell);
-                        x_PDC_rev = dectnrp_rx.equalization_MISO_MIMO_alamouti_mrc(antenna_streams_mapped_rev, ch_estim, obj.N_RX, N_eff_TX, physical_resource_mapping_PDC_cell);
+                        x_PCC_rev = dectnrp_rx.equalization_detection.MISO_MIMO_alamouti_mrc(antenna_streams_mapped_rev, ch_estim, obj.N_RX, N_eff_TX, physical_resource_mapping_PCC_cell);
+                        x_PDC_rev = dectnrp_rx.equalization_detection.MISO_MIMO_alamouti_mrc(antenna_streams_mapped_rev, ch_estim, obj.N_RX, N_eff_TX, physical_resource_mapping_PDC_cell);
                     % MIMO modes with more than one spatial stream
                     else
                         error("MIMO modes with N_SS>1 not implemented yet.");
