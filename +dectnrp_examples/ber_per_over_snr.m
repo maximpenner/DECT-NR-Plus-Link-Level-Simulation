@@ -163,8 +163,8 @@ function [result] = simulate_packets(tx_cpy, rx_cpy, snr_dB, n_packets_per_snr, 
     % create channel
     channel = dectnrp_channel.channel_t(channel_config);
 
-    % adapt Wiener coefficients to channel conditions
-    rx_cpy.set_wiener(1/10^(snr_dB/10), 20, 363e-9);
+    % adapt channel estimation weights to channel conditions
+    rx_cpy.set_weights(1/10^(snr_dB/10), 20, 363e-9);
 
     % how many bits does tx need?
     N_TB_bits = tx_cpy.derived.N_TB_bits;

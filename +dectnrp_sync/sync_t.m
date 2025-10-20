@@ -41,21 +41,18 @@ classdef sync_t < matlab.mixin.Copyable
             obj.config = tx.config;
             obj.derived = tx.derived;
             
-            obj = obj.set_example_values();
+            obj = obj.set_universal_values();
 
             obj.sync_report = [];
         end
 
         function [samples_antenna_rx] = synchronize(obj, samples_antenna_ch)
-
-            assert(size(samples_antenna_ch, 1) > obj.derived.n_packet_samples*obj.config.oversampling, ...
-                   "for synchonization more samples than the packet size must be provided");
-
-            assert(mod(obj.n_samples_STF_b_os, obj.derived.n_STF_pattern) == 0);
-
             %% extract size of IQ samples received
         
             [n_samples_antenna, N_RX] = size(samples_antenna_ch);
+
+            assert(n_samples_antenna > obj.derived.n_packet_samples*obj.config.oversampling, ...
+                   "for synchonization more samples than the packet size must be provided");
 
             %% low-pass filtering 
 
@@ -189,7 +186,7 @@ classdef sync_t < matlab.mixin.Copyable
     end
 
     methods (Hidden = true)
-        function obj = set_example_values(obj)
+        function obj = set_universal_values(obj)
             % what is the length of the STF and how many pattern does it contain?
             switch obj.config.u
                 case 1
@@ -206,20 +203,21 @@ classdef sync_t < matlab.mixin.Copyable
             obj.n_samples_STF_b_os = n_samples_STF*obj.config.b*obj.config.oversampling;
             obj.n_samples_STF_cp_only_b_os = obj.n_samples_STF_b_os - 64*obj.config.b*obj.config.oversampling;
 
+            assert(mod(obj.n_samples_STF_b_os, obj.derived.n_STF_pattern) == 0);
+
             obj.stf_templates = dectnrp_rx.stf_templates(obj.config);
 
             %% low-pass filtering to remove out-of-band noise
             obj.lpf_enable = true;
         
             %% STF Detection based on auto-correlation of incoming samples
-        
-            % based on the length of the STF we can estimate the length of the coarse detection metric without noise
-            n_samples_coarse_metric_first_half_no_noise = n_samples_STF * obj.config.b * obj.config.oversampling * (n_pattern-1) / n_pattern;
-        
             % The following values define parameters for the STF time domain synchronization, i.e. the search for where a packet starts.
             % All values are experience values, which should for work for all DECT-2020 NR packet configurations.
             % In a real receiver, some values could be optimized for the given hardware, for instance, threshold values matching ADC resolution.
             % These variables are explained and used in +dectnrp_rx.sync_STF.m.
+        
+            % based on the length of the STF we can estimate the length of the coarse detection metric without noise
+            n_samples_coarse_metric_first_half_no_noise = obj.n_samples_STF_b_os * (n_pattern-1) / n_pattern;
         
             % power threshold: must be low enough to detect even at very low SNRs, but high enough to avoid numerical imprecision
             obj.detection_minimum_power_threshold = 0.001;
@@ -237,7 +235,7 @@ classdef sync_t < matlab.mixin.Copyable
         
             %% STO Coarse Peak Search based on auto-correlation of incoming samples
         
-            % starting from the detection point, the search length must be long enough to definitely contain the coarse peak
+            % search length must be long enough to definitely contain the coarse peak
             obj.coarse_peak_search_length = round(obj.detection_threshold_jump_pack + 1.2*n_samples_coarse_metric_first_half_no_noise);
         
             % when using oversampling, this step can be made larger than 1
@@ -258,15 +256,6 @@ classdef sync_t < matlab.mixin.Copyable
             obj.cfo_fractional_enable = true;
         
             %% CFO Integer
-            %
-            % How large is the search space for the integer CFO?
-            %
-            %   According to the DECT-2020 NR standard, battery powered devices are allowed to have up to 30ppm.
-            %   At the receiver, we see a maximum of 2*30ppm = 60ppm deviation.
-            %   At 6GHz, 60 ppm corresponds to 360kHz.
-            %   The minimum subcarrier spacing is 27kHz, so the maximum CFO is 360kHz/27kHz = 13.33333 subcarrier spacing.
-            %
-            %   With larger u, the subcarrier spacing is larger as well and the actual possible deviation becomes smaller.
         
             obj.cfo_integer_enable = true;
             
@@ -282,6 +271,8 @@ classdef sync_t < matlab.mixin.Copyable
                 search_lim = 8;
             elseif obj.cfo_integer_max_deviation_subcarrier_spacings < 14
                 search_lim = 12;
+            else
+                error("deviation too large");
             end
             
             % we add some more possible subcarrier deviations for testing as the fractional CFO correction is not optimal
