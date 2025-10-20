@@ -9,7 +9,7 @@ function [ch_estim] = estimate(antenna_streams_mapped_rev, ...
     % output
     ch_estim = cell(N_RX,1);
 
-    % for each rx antenna
+    % for each RX antenna
     for i=1:1:N_RX
 
         % create empty container
@@ -18,16 +18,16 @@ function [ch_estim] = estimate(antenna_streams_mapped_rev, ...
         % received f domain samples at antenna i
         transmit_streams_rev_i = cell2mat(antenna_streams_mapped_rev(i));
 
-        % for each tx antenna
+        % for each transmit stream
         for j=1:1:N_eff_TX
             %% extract send values
-            % linear indices of drs
+            % linear indices of DRS
             linear_indices_matlab = cell2mat(physical_resource_mapping_DRS_cell(j,4));
 
-            % transmitted drs
+            % transmitted DRS
             values = cell2mat(physical_resource_mapping_DRS_cell(j,3));
 
-            % received drs
+            % received DRS
             y = transmit_streams_rev_i(ind2sub([N_b_DFT N_PACKET_symb], linear_indices_matlab));
 
             %% least squares estimation at the pilot positions
@@ -38,7 +38,7 @@ function [ch_estim] = estimate(antenna_streams_mapped_rev, ...
             ls = reshape(ls,1,1,numel(ls));
             ls = repmat(ls,N_b_DFT, N_PACKET_symb, 1);
 
-            %% wiener interpolate
+            %% interpolation, extrapolation and smoothing
             ch_estim_i(:,:,j) = sum(ls.*cell2mat(weights(j)),3);
         end
         ch_estim(i) = {ch_estim_i};

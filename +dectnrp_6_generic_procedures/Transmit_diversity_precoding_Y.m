@@ -17,8 +17,8 @@ function [Y, idx, prefactor] = Transmit_diversity_precoding_Y(N_TS)
     % !!!!!!!!!!! NOT STANDARD COMPLIANT !!!!!!!!!!!
     % !!!!!!!!!!! NOT STANDARD COMPLIANT !!!!!!!!!!!
     % !!!!!!!!!!! NOT STANDARD COMPLIANT !!!!!!!!!!!
-    dont_use_preafactor_as_in_TS = true;
-    %dont_use_preafactor_as_in_TS = false;
+    dont_use_prefactor_as_in_TS = true;
+    %dont_use_prefactor_as_in_TS = false;
     % !!!!!!!!!!! NOT STANDARD COMPLIANT !!!!!!!!!!!
     % !!!!!!!!!!! NOT STANDARD COMPLIANT !!!!!!!!!!!
     % !!!!!!!!!!! NOT STANDARD COMPLIANT !!!!!!!!!!!
@@ -35,7 +35,7 @@ function [Y, idx, prefactor] = Transmit_diversity_precoding_Y(N_TS)
                 ];
             idx0 = [1, 2];
             
-            if dont_use_preafactor_as_in_TS == true
+            if dont_use_prefactor_as_in_TS == true
                 Y = Y0;
             else
                 Y = prefactor * Y0;
@@ -113,7 +113,7 @@ function [Y, idx, prefactor] = Transmit_diversity_precoding_Y(N_TS)
             idx5 = [2, 3];
             
             Y = zeros(8,4,6);
-            if dont_use_preafactor_as_in_TS == true
+            if dont_use_prefactor_as_in_TS == true
                 Y(:,:,1) = Y0;
                 Y(:,:,2) = Y1;
                 Y(:,:,3) = Y2;
@@ -375,7 +375,7 @@ function [Y, idx, prefactor] = Transmit_diversity_precoding_Y(N_TS)
             idx11 = [6, 8];
             
             Y = zeros(16,4,12);
-            if dont_use_preafactor_as_in_TS == true
+            if dont_use_prefactor_as_in_TS == true
                 Y(:,:,1) = Y0;
                 Y(:,:,2) = Y1;
                 Y(:,:,3) = Y2;
