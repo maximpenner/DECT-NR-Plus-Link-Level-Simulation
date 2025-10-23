@@ -35,13 +35,13 @@ function [N_eff_TX_report, max_idx_fine] = fine_peak_search(verbosity, ...
         % get the samples of this particular antenna
         samples_antenna_single = samples_antenna_ch_required(:,i);
         
-        % try every possible stf type
+        % try every possible STF type
         for j=1:1:numel(stf_templates.time_domain)
 
-            % stf templates in time domain are already oversampled
+            % STF templates in time domain are already oversampled
             STF_template_candidate = cell2mat(stf_templates.time_domain(j));
 
-            % normalize power of stf
+            % normalize power of STF
             STF_template_candidate = STF_template_candidate/rms(STF_template_candidate);
 
             % extract the search range in which we will be looking for the fine sync peaks
@@ -51,7 +51,7 @@ function [N_eff_TX_report, max_idx_fine] = fine_peak_search(verbosity, ...
             total_cfo = cfo_fractional_report + cfo_integer_report * 1/(N_b_DFT*oversampling);
             samples_antenna_single_search_range = samples_antenna_single_search_range.*exp(1i*2*pi*(-total_cfo)*time_base(1:n_search_area));
 
-            % perform a cross correlation between the samples and the stf template
+            % perform a cross correlation between the samples and the STF template
             metric = abs(dectnrp_util.xcorr2(samples_antenna_single_search_range, STF_template_candidate));
 
             % this maximum is local
@@ -87,7 +87,7 @@ function [N_eff_TX_report, max_idx_fine] = fine_peak_search(verbosity, ...
     % average peaks across antennas
     metric_maxima_sum = sum(metric_maxima, 2);
     
-    % find the best fitting stf
+    % find the best fitting STF
     [~, j_best] = max(metric_maxima_sum);
     
     % how many effective antennas do we have?

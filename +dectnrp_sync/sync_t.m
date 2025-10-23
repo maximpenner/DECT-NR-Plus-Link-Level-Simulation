@@ -12,10 +12,10 @@ classdef sync_t < matlab.mixin.Copyable
 
         lpf_enable;
 
-        detection_minimum_power_threshold;
-        detection_threshold_step;
-        detection_threshold_value,
-        detection_threshold_jump_pack;
+        coarse_detection_power_threshold;
+        coarse_detection_step;
+        coarse_detection_threshold;
+        coarse_detection_jumpback;
     
         coarse_peak_search_length;
         coarse_peak_step;
@@ -63,13 +63,13 @@ classdef sync_t < matlab.mixin.Copyable
         
             %% detection by searching for a coarse metric threshold crossing
         
-            coarse_metric_threshold_crossing_idx = dectnrp_sync.detection(obj.detection_threshold_step, ...
-                                                                          obj.detection_minimum_power_threshold, ...
-                                                                          obj.detection_threshold_value, ...
-                                                                          obj.detection_threshold_jump_pack, ...
-                                                                          obj.n_samples_STF_b_os, ...
-                                                                          obj.derived.n_STF_pattern, ...
-                                                                          samples_antenna_ch);
+            coarse_metric_threshold_crossing_idx = dectnrp_sync.coarse_detection(obj.coarse_detection_power_threshold, ...
+                                                                                 obj.coarse_detection_step, ...
+                                                                                 obj.coarse_detection_threshold, ...
+                                                                                 obj.coarse_detection_jumpback, ...
+                                                                                 obj.n_samples_STF_b_os, ...
+                                                                                 obj.derived.n_STF_pattern, ...
+                                                                                 samples_antenna_ch);
         
             %% after detection, extract the range of samples required for the upcoming steps
         
@@ -87,8 +87,8 @@ classdef sync_t < matlab.mixin.Copyable
             %% search for the coarse peak starting from the coarse metric threshold crossing
         
             coarse_peak_idx = dectnrp_sync.coarse_peak_search(obj.config.verbosity, ...
-                                                              obj.detection_minimum_power_threshold, ...
-                                                              obj.detection_threshold_value, ...
+                                                              obj.coarse_detection_power_threshold, ...
+                                                              obj.coarse_detection_threshold, ...
                                                               obj.coarse_peak_search_length, ...
                                                               obj.coarse_peak_step, ...
                                                               obj.coarse_peak_movmean, ...
@@ -220,23 +220,23 @@ classdef sync_t < matlab.mixin.Copyable
             n_samples_coarse_metric_first_half_no_noise = obj.n_samples_STF_b_os * (n_pattern-1) / n_pattern;
         
             % power threshold: must be low enough to detect even at very low SNRs, but high enough to avoid numerical imprecision
-            obj.detection_minimum_power_threshold = 0.001;
+            obj.coarse_detection_power_threshold = 0.001;
         
             % largest step is 16*b*oversampling, i.e. one STF pattern
-            obj.detection_threshold_step = 8*obj.config.b*obj.config.oversampling;    
+            obj.coarse_detection_step = 8*obj.config.b*obj.config.oversampling;    
         
             % coarse metric is normalized between 0 and 1.0, threshold should be low enough to detect at low SNR, but not too low to avoid false alarms due to noise
-            obj.detection_threshold_value = 0.15;
+            obj.coarse_detection_threshold = 0.15;
         
             % This parameter has become necessary with the newly introduced cover sequence.
             % The cover sequence has made the coarse metric very narrow, so it can happen that the metric is detected on the falling edge after the coarse peak.
             % As a countermeasure, we jump back some samples at the detection point. This way we make sure that the coarse peak search begin BEFORE the coarse peak.
-            obj.detection_threshold_jump_pack = obj.n_samples_STF_b_os / n_pattern * 2;
+            obj.coarse_detection_jumpback = obj.n_samples_STF_b_os / n_pattern * 2;
         
             %% STO Coarse Peak Search based on auto-correlation of incoming samples
         
             % search length must be long enough to definitely contain the coarse peak
-            obj.coarse_peak_search_length = round(obj.detection_threshold_jump_pack + 1.2*n_samples_coarse_metric_first_half_no_noise);
+            obj.coarse_peak_search_length = round(obj.coarse_detection_jumpback + 1.2*n_samples_coarse_metric_first_half_no_noise);
         
             % when using oversampling, this step can be made larger than 1
             obj.coarse_peak_step = 1;

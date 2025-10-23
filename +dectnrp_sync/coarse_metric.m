@@ -7,7 +7,8 @@ function metric = coarse_metric(window, M, L, detection_E_rms_threshold)
     if L == 7
         u=1;
     else
-        u=2; % can also be 4 or 8
+        % can also be 4 or 8
+        u=2;
     end
     window = dectnrp_6_generic_procedures.STF_signal_cover_sequence(window, u, b_times_oversampling);
     

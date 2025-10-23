@@ -1,6 +1,6 @@
 function [coarse_peak_idx] = coarse_peak_search(verbosity, ...
-                                                detection_minimum_power_threshold, ...
-                                                detection_threshold_value, ...
+                                                coarse_detection_power_threshold, ...
+                                                coarse_detection_threshold, ...
                                                 coarse_peak_search_length, ...
                                                 coarse_peak_step, ...
                                                 coarse_peak_movmean, ...
@@ -47,7 +47,7 @@ function [coarse_peak_idx] = coarse_peak_search(verbosity, ...
             end
 
             % determine the metric at this sample index
-            metric(m) = dectnrp_sync.coarse_metric(samples_antenna_single(m:m+n_samples_STF_b_os-1), M, n_STF_pattern, detection_minimum_power_threshold);
+            metric(m) = dectnrp_sync.coarse_metric(samples_antenna_single(m:m+n_samples_STF_b_os-1), M, n_STF_pattern, coarse_detection_power_threshold);
         end
 
         % warning: if sto_config.coarse_peak.step > 1, we apply the moving average across zeros!
@@ -71,8 +71,8 @@ function [coarse_peak_idx] = coarse_peak_search(verbosity, ...
             subplot(2,1,1)
             plot(abs(metric));
   
-            yline(detection_threshold_value, 'r');
-            text(0, detection_threshold_value + 0.05, 'Detection Threshold')
+            yline(coarse_detection_threshold, 'r');
+            text(0, coarse_detection_threshold + 0.05, 'Detection Threshold')
 
             xline(cpi, 'r-.');
 
@@ -84,8 +84,8 @@ function [coarse_peak_idx] = coarse_peak_search(verbosity, ...
             subplot(2,1,2)
             plot(abs(metric_mm));
 
-            yline(detection_threshold_value, 'r');
-            text(0, detection_threshold_value + 0.05, 'Detection Threshold')
+            yline(coarse_detection_threshold, 'r');
+            text(0, coarse_detection_threshold + 0.05, 'Detection Threshold')
 
             xline(cpi, 'r-.');
             text(cpi,cph,'Coarse Peak')

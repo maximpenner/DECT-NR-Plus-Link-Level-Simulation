@@ -1,10 +1,10 @@
-function [coarse_metric_threshold_crossing_idx] = detection(detection_threshold_step, ...
-                                                            detection_minimum_power_threshold, ...
-                                                            detection_threshold_value, ...
-                                                            detection_threshold_jump_pack, ...
-                                                            n_samples_STF_b_os, ...
-                                                            n_STF_pattern, ...
-                                                            samples_antenna_ch)
+function [coarse_metric_threshold_crossing_idx] = coarse_detection(coarse_detection_power_threshold, ...
+                                                                   coarse_detection_step, ...
+                                                                   coarse_detection_threshold, ...
+                                                                   coarse_detection_jumpback, ...
+                                                                   n_samples_STF_b_os, ...
+                                                                   n_STF_pattern, ...
+                                                                   samples_antenna_ch)
     %% precalculate parameters known at the receiver
 
     [n_samples_antenna_ch, N_RX] = size(samples_antenna_ch);
@@ -28,13 +28,13 @@ function [coarse_metric_threshold_crossing_idx] = detection(detection_threshold_
         metric = zeros(n_samples_antenna_ch - 2*n_samples_STF_b_os, 1);
         
         % the step must be small enough to find every STF at every SNR
-        for k = 1 : detection_threshold_step : numel(metric)
+        for k = 1 : coarse_detection_step : numel(metric)
 
             % determine the metric at this sample index
-            metric(k) = dectnrp_sync.coarse_metric(samples_antenna_single(k : k + n_samples_STF_b_os - 1), M, n_STF_pattern, detection_minimum_power_threshold);
+            metric(k) = dectnrp_sync.coarse_metric(samples_antenna_single(k : k + n_samples_STF_b_os - 1), M, n_STF_pattern, coarse_detection_power_threshold);
 
             % the threshold must be small enough to find every STF at every SNR
-            if metric(k) >= detection_threshold_value
+            if metric(k) >= coarse_detection_threshold
 
                 % save where we have crossed the threshold, this is an absolute index
                 coarse_metric_threshold_crossing_idx(i) = k;
@@ -46,7 +46,7 @@ function [coarse_metric_threshold_crossing_idx] = detection(detection_threshold_
     end
 
     % With the new cover sequence, the coarse metric is far more narrow. After detection, we jump back back a few samples.
-    coarse_metric_threshold_crossing_idx = coarse_metric_threshold_crossing_idx - detection_threshold_jump_pack;
+    coarse_metric_threshold_crossing_idx = coarse_metric_threshold_crossing_idx - coarse_detection_jumpback;
 
     % keep the antennas at which we found a preamble
     coarse_metric_threshold_crossing_idx = coarse_metric_threshold_crossing_idx(coarse_metric_threshold_crossing_idx > 0);
