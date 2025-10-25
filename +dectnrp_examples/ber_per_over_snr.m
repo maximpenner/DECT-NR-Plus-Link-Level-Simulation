@@ -157,8 +157,8 @@ function [result] = simulate_packets(tx_cpy, rx_cpy, snr_dB, n_packets_per_snr, 
     channel_config.r_samp_rate          = tx_cpy.derived.numerology.B_u_b_DFT*tx_cpy.config.oversampling;
     channel_config.r_max_doppler        = 1.946;
     channel_config.r_type               = 'TDL-v';
-    channel_config.r_DS_desired         = 10^(-7.03 + 0.00*randn(1,1));
-    channel_config.r_K                  = db2pow(9.0 + 0.00*randn(1,1));
+    channel_config.r_DS_desired         = 10^(-7.03 + 0.00*randn());
+    channel_config.r_K                  = db2pow(9.0 + 0.00*randn());
 
     % create channel
     channel = dectnrp_channel.channel_t(channel_config);

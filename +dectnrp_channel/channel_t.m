@@ -2,6 +2,9 @@ classdef channel_t < handle
     
     properties
         config;
+
+        % https://de.mathworks.com/help/comm/ref/comm.mimochannel-system-object.html
+        r_seed;
         
         % reference to the matlab object
         r_matlab_MIMO_obj;
@@ -46,6 +49,11 @@ classdef channel_t < handle
             Ts = 1/obj.config.r_samp_rate;
             obj.r_appendix = ceil(max(pathDelays)/Ts);
 
+            % add random seed if not defined
+            if isempty(obj.r_seed)
+                obj.r_seed = randi([1, 2^32-1]);
+            end
+
             % create Matlab channel object
             if strcmp(obj.config.type, 'Rayleigh') == true
                 
@@ -71,7 +79,8 @@ classdef channel_t < handle
                                                          'FadingTechnique', 'Sum of sinusoids', ...
                                                          'NumSinusoids', 48, ...
                                                          'InitialTimeSource', 'Input Port', ... % InitialTime
-                                                         'RandomStream', 'Global stream', ... % Seed
+                                                         'RandomStream', 'mt19937ar with seed', ...
+                                                         'Seed', obj.r_seed, ...
                                                          'PathGainsOutputPort', false, ...
                                                          'Visualization', 'off'); %AntennaPairsToDisplay, PathsForDopplerDisplay, SamplesToDisplay
                 
@@ -100,7 +109,8 @@ classdef channel_t < handle
                                                          'FadingTechnique', 'Sum of sinusoids', ...
                                                          'NumSinusoids', 48, ...
                                                          'InitialTimeSource', 'Input Port', ... % InitialTime
-                                                         'RandomStream', 'Global stream', ... % Seed
+                                                         'RandomStream', 'mt19937ar with seed', ... 
+                                                         'Seed', obj.r_seed, ...
                                                          'PathGainsOutputPort', false, ...
                                                          'Visualization', 'off'); %AntennaPairsToDisplay, PathsForDopplerDisplay, SamplesToDisplay
             end
