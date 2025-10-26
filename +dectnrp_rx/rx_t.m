@@ -20,9 +20,6 @@ classdef rx_t < matlab.mixin.Copyable
         HARQ_buf_40;    % PCC 40 bits
         HARQ_buf_80;    % PCC 80 bits
         HARQ_buf;       % PDC
-        
-        % channel estimation weights
-        weights;
     end
     
     methods
@@ -38,10 +35,6 @@ classdef rx_t < matlab.mixin.Copyable
             obj.packet_data = [];
 
             obj.clear_harq_buffers();
-            
-            obj.set_weights(obj.channel_estimation_config.noise_estim, ...
-                            obj.channel_estimation_config.f_d_hertz, ...
-                            obj.channel_estimation_config.tau_rms_sec);
         end
 
         function [] = clear_harq_buffers(obj)
@@ -55,15 +48,16 @@ classdef rx_t < matlab.mixin.Copyable
         % For noise, the best case value is assumed, for delay and Doppler spread the worst case value.
         % To improve performance, different sets should be precalculated for different SNRs.
         function [] = set_weights(obj, noise_estim, f_d_hertz, tau_rms_sec)
-            obj.weights = dectnrp_rx.channel_estimation.weights(obj.derived.physical_resource_mapping_DRS_cell, ...
-                                                                obj.channel_estimation_config.N_closest_DRS_pilots, ...
-                                                                obj.derived.numerology.N_b_DFT, ...
-                                                                obj.derived.N_PACKET_symb, ...
-                                                                obj.derived.numerology.N_b_CP, ...
-                                                                obj.derived.numerology.B_u_b_DFT, ...
-                                                                noise_estim, ...
-                                                                f_d_hertz, ...
-                                                                tau_rms_sec);
+            obj.channel_estimation_config.weights = dectnrp_rx.channel_estimation.weights(obj.derived.numerology.N_b_DFT, ...
+                                                                                          obj.derived.N_PACKET_symb, ...
+                                                                                          obj.derived.numerology.N_b_CP, ...
+                                                                                          obj.channel_estimation_config.type, ...
+                                                                                          obj.channel_estimation_config.N_closest_DRS_pilots, ...
+                                                                                          obj.derived.physical_resource_mapping_DRS_cell, ...
+                                                                                          obj.derived.numerology.B_u_b_DFT, ...
+                                                                                          noise_estim, ...
+                                                                                          f_d_hertz, ...
+                                                                                          tau_rms_sec);
         end
         
         % We pass on the samples as they are received at the antennas and we try to extract the PCC and PDC bits.
@@ -73,38 +67,37 @@ classdef rx_t < matlab.mixin.Copyable
             
             %% for the purpose of readability, extract all variables that are necessary at this stage
 
-            verbosity           = obj.config.verbosity;
-
-            HARQ_buf_40_        = obj.HARQ_buf_40;
-            HARQ_buf_80_        = obj.HARQ_buf_80;
-            HARQ_buf_           = obj.HARQ_buf;
-            weights_            = obj.weights;
+            u               = obj.config.u;
+            b               = obj.config.b;
+            Z               = obj.config.Z;
+            network_id      = obj.config.network_id;
+            PLCF_type       = obj.config.PLCF_type;
+            rv              = obj.config.rv;
+            oversampling    = obj.config.oversampling;
+            verbosity       = obj.config.verbosity;
         
-            mode_0_to_11        = obj.derived.tm_mode.mode_0_to_11;
-            N_SS                = obj.derived.tm_mode.N_SS;
-            N_eff_TX            = obj.derived.tm_mode.N_eff_TX;
+            mode_0_to_11    = obj.derived.tm_mode.mode_0_to_11;
+            N_SS            = obj.derived.tm_mode.N_SS;
+            N_eff_TX        = obj.derived.tm_mode.N_eff_TX;
 
-            mcs                 = obj.derived.mcs;
+            mcs             = obj.derived.mcs;
 
-            N_b_DFT             = obj.derived.numerology.N_b_DFT;            
-            N_b_CP              = obj.derived.numerology.N_b_CP;
+            N_b_DFT         = obj.derived.numerology.N_b_DFT;            
+            N_b_CP          = obj.derived.numerology.N_b_CP;
 
-            N_TB_bits           = obj.derived.N_TB_bits;
-            N_PACKET_symb       = obj.derived.N_PACKET_symb;
-            k_b_OCC             = obj.derived.k_b_OCC;
-
-            u                   = obj.config.u;
-            b                   = obj.config.b;
-            Z                   = obj.config.Z;
-            network_id          = obj.config.network_id;
-            PLCF_type           = obj.config.PLCF_type;
-            rv                  = obj.config.rv;
-            oversampling        = obj.config.oversampling;
+            N_TB_bits       = obj.derived.N_TB_bits;
+            N_PACKET_symb   = obj.derived.N_PACKET_symb;
+            k_b_OCC         = obj.derived.k_b_OCC;
 
             physical_resource_mapping_PCC_cell = obj.derived.physical_resource_mapping_PCC_cell;
             physical_resource_mapping_PDC_cell = obj.derived.physical_resource_mapping_PDC_cell;
             physical_resource_mapping_STF_cell = obj.derived.physical_resource_mapping_STF_cell;
             physical_resource_mapping_DRS_cell = obj.derived.physical_resource_mapping_DRS_cell;
+
+            HARQ_buf_40_    = obj.HARQ_buf_40;
+            HARQ_buf_80_    = obj.HARQ_buf_80;
+            HARQ_buf_       = obj.HARQ_buf;
+            weights_        = obj.channel_estimation_config.weights;
 
             assert(size(samples_antenna_rx, 1) == obj.derived.n_packet_samples*oversampling, "incorrect number of input samples");
 
@@ -381,10 +374,17 @@ classdef rx_t < matlab.mixin.Copyable
             obj.sto_residual_config = 1;
             obj.cfo_residual_config = 1;
 
+            % Calculating Wiener filter coefficients takes very long for large packets.
+            % For basic interpolation and for testing purposes, type can be set to 'equal' to speed up the process.
+            obj.channel_estimation_config.type = 'Wiener';
             obj.channel_estimation_config.N_closest_DRS_pilots = 8;
             obj.channel_estimation_config.noise_estim = 1/10^(30/10);   % 30dB SNR
             obj.channel_estimation_config.f_d_hertz = 20;               % 20Hz Doppler
             obj.channel_estimation_config.tau_rms_sec = 363e-9;         % 363ns delay spread
+
+            obj.set_weights(obj.channel_estimation_config.noise_estim, ...
+                            obj.channel_estimation_config.f_d_hertz, ...
+                            obj.channel_estimation_config.tau_rms_sec);
 
             % can be deactivated by leaving empty
             obj.equalization_detection_config = 1;

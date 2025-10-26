@@ -142,33 +142,32 @@ classdef tx_t < matlab.mixin.Copyable
             
             %% for the purpose of readability, read all variables that are necessary at this stage
 
-            verbosity_          = obj.config.verbosity;
+            u               = obj.config.u;
+            b               = obj.config.b;
+            Z               = obj.config.Z;
+            codebook_index  = obj.config.codebook_index;
+            network_id      = obj.config.network_id;
+            PLCF_type       = obj.config.PLCF_type;
+            rv              = obj.config.rv;
+            oversampling    = obj.config.oversampling;
+            verbosity       = obj.config.verbosity;
 
-            mode_0_to_11        = obj.derived.tm_mode.mode_0_to_11;
-            N_SS                = obj.derived.tm_mode.N_SS;
-            CL                  = obj.derived.tm_mode.CL;
-            N_TS                = obj.derived.tm_mode.N_TS;
-            N_TX                = obj.derived.tm_mode.N_TX;
-            N_eff_TX            = obj.derived.tm_mode.N_eff_TX;
+            mode_0_to_11    = obj.derived.tm_mode.mode_0_to_11;
+            N_SS            = obj.derived.tm_mode.N_SS;
+            CL              = obj.derived.tm_mode.CL;
+            N_TS            = obj.derived.tm_mode.N_TS;
+            N_TX            = obj.derived.tm_mode.N_TX;
+            N_eff_TX        = obj.derived.tm_mode.N_eff_TX;
 
-            mcs                 = obj.derived.mcs;
+            mcs             = obj.derived.mcs;
 
-            N_b_DFT             = obj.derived.numerology.N_b_DFT;
-            N_b_CP              = obj.derived.numerology.N_b_CP;
+            N_b_DFT         = obj.derived.numerology.N_b_DFT;
+            N_b_CP          = obj.derived.numerology.N_b_CP;
 
-            N_PACKET_symb       = obj.derived.N_PACKET_symb;
-            k_b_OCC             = obj.derived.k_b_OCC;
+            N_PACKET_symb   = obj.derived.N_PACKET_symb;
+            k_b_OCC         = obj.derived.k_b_OCC;
 
-            G                   = obj.derived.G;
-
-            u                   = obj.config.u;
-            b                   = obj.config.b;
-            Z                   = obj.config.Z;
-            codebook_index      = obj.config.codebook_index;
-            network_id          = obj.config.network_id;
-            PLCF_type           = obj.config.PLCF_type;
-            rv                  = obj.config.rv;
-            oversampling        = obj.config.oversampling;
+            G               = obj.derived.G;
 
             physical_resource_mapping_PCC_cell = obj.derived.physical_resource_mapping_PCC_cell;
             physical_resource_mapping_PDC_cell = obj.derived.physical_resource_mapping_PDC_cell;
@@ -275,7 +274,7 @@ classdef tx_t < matlab.mixin.Copyable
             obj.packet_data.antenna_streams_mapped = antenna_streams_mapped;
             obj.packet_data.samples_antenna_tx = samples_antenna_tx;
 
-            if verbosity_ > 0
+            if verbosity > 0
                 obj.plot_resource_allocation_in_frequency_domain();
                 obj.plot_resource_allocation_in_time_domain();
             end

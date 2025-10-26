@@ -25,6 +25,8 @@ function [success] = time_reproducibility()
     
         % create channel
         channel = dectnrp_channel.channel_t(channel_config);
+
+        channel.set_randomstream_for_channel_reproducibility(randi([1 1e9]));
     
         % create random noise signal
         samples_antenna_tx = randn(10e3, channel_config.N_TX);
