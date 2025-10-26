@@ -1,4 +1,6 @@
-function [] = loop_over_channel()
+function [success] = time_reproducibility()
+
+    success = true;
 
     for i=1:1:100
 
@@ -35,6 +37,12 @@ function [] = loop_over_channel()
         channel.reset_random_Rayleigh_Rician();
         samples_antenna_ch_B = channel.pass_samples(samples_antenna_tx, channel_time_in_seconds);
 
-        assert(max(abs(samples_antenna_ch_A - samples_antenna_ch_B), [], 'all') < 1e-6);
+        err = max(abs(samples_antenna_ch_A - samples_antenna_ch_B), [], 'all');
+
+        if err >= 1e-6
+            disp(channel_config);
+            success = false;
+            return;
+        end
     end
 end
