@@ -5,7 +5,7 @@ function [] = parfor_harness(range, func)
 
     % test a large selection of packet configurations
     for u = range.u_vec
-        %for b_vec_idx = 1:numel(b_vec)
+        %for b_vec_idx = 1:numel(range.b_vec)
         parfor b_vec_idx = 1:numel(range.b_vec)
             b = range.b_vec(b_vec_idx);
             for PacketLengthType = range.PacketLengthType_vec

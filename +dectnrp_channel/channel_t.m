@@ -19,12 +19,15 @@ classdef channel_t < handle
        % This is typically more convenient than controlling all parameters through class methods.
        function obj = channel_t(config)
             assert(isa(config, "dectnrp_channel.config_t"));
-            assert(config.is_valid());
 
             obj.config = config;
 
             if strcmp(obj.config.type,'Rayleigh') || strcmp(obj.config.type,'Rician')
                 obj.init_Rayleigh_Rician_channel();
+            end
+
+            if obj.config.sto_fractional ~= 0
+                assert(obj.config.spectrum_occupied <= 0.5, 'Fractional delay requires oversampling of at least 2. Set fractional delay in configuration of channel to 0.');
             end
        end
     end
@@ -198,9 +201,17 @@ classdef channel_t < handle
         end
 
         function [] = plot_channel_properties(obj)
-            % lookup PDP
-            [pathDelays_beforeInterpolation, avgPathGains_beforeInterpolation] = dectnrp_channel.get_PDP_from_literature(obj.config.r_type, ...
-                                                                                                                         obj.config.r_DS_desired);
+            if strcmp(obj.config.type, 'AWGN')
+                % this print does not make much sense for AGWN
+                return;
+            elseif strcmp(obj.config.type, 'Rayleigh') == true || strcmp(obj.config.type, 'Rician') == true
+                % lookup PDP
+                [pathDelays_beforeInterpolation, avgPathGains_beforeInterpolation] = dectnrp_channel.get_PDP_from_literature(obj.config.r_type, ...
+                                                                                                                             obj.config.r_DS_desired);
+            else
+                error('Channel neither AWGN, nor Rayleigh, nor Rician, but %s.', obj.config.type);
+            end
+
             avgPathGains_beforeInterpolation_linear = db2pow(avgPathGains_beforeInterpolation);
 
             % extract for readability

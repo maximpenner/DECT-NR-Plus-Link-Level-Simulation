@@ -7,11 +7,11 @@ function [N_eff_TX_report, max_idx_fine] = fine_peak_search(verbosity, ...
                                                             fine_peak_search_area, ...
                                                             n_samples_STF_b_os, ...
                                                             stf_templates, ...
-                                                            samples_antenna_ch, ...
-                                                            samples_antenna_ch_required)
+                                                            samples_antenna_ch_lpf, ...
+                                                            samples_antenna_ch_lpf_required)
     %% precalculate parameters known at the receiver
 
-    [~, N_RX] = size(samples_antenna_ch);
+    [~, N_RX] = size(samples_antenna_ch_lpf);
 
     %% perform cross-correlation with STF templates for N_eff_TX and fine synchronization pointer determination
 
@@ -33,7 +33,7 @@ function [N_eff_TX_report, max_idx_fine] = fine_peak_search(verbosity, ...
     for i=1:1:N_RX
         
         % get the samples of this particular antenna
-        samples_antenna_single = samples_antenna_ch_required(:,i);
+        samples_antenna_single = samples_antenna_ch_lpf_required(:,i);
         
         % try every possible STF type
         for j=1:1:numel(stf_templates.time_domain)

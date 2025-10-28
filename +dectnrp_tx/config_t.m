@@ -20,12 +20,6 @@ classdef config_t < matlab.mixin.Copyable
     methods
         function obj = config_t()
             obj = obj.set_example_values();
-            
-            assert(obj.is_valid());
-        end
-
-        function ret = is_valid(obj)
-            ret = true;
         end
     end
 

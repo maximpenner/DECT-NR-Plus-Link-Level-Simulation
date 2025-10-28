@@ -15,7 +15,8 @@ classdef rx_t < matlab.mixin.Copyable
         channel_estimation_config       % based on optionally STF and DRS
         equalization_detection_config
 
-        packet_data;    % intermediate results during packet decoding
+        % intermediate results during packet decoding
+        packet_data;
 
         HARQ_buf_40;    % PCC 40 bits
         HARQ_buf_80;    % PCC 80 bits
@@ -25,7 +26,6 @@ classdef rx_t < matlab.mixin.Copyable
     methods
         function obj = rx_t(tx)
             assert(isa(tx, "dectnrp_tx.tx_t"));
-            assert(tx.config.is_valid());
 
             obj.config = tx.config;
             obj.derived = tx.derived;
@@ -160,7 +160,7 @@ classdef rx_t < matlab.mixin.Copyable
                                                                                                                     
             %% channel estimation
             % Now that we know the length of the packet from the PCC, we can determine a channel estimate.
-            % Output is a cell(N_RX,1), each cell with a matrix of size N_b_DFT x N_PACKET_symb x N_TX.
+            % Output is a cell(N_RX,1), each cell with a matrix of size N_b_DFT x N_PACKET_symb x N_TS.
             % For subcarriers which are unused the channel estimate can be NaN or +/- infinity.
             ch_estim = dectnrp_rx.channel_estimation.estimate(antenna_streams_mapped_rev, ...
                                                               physical_resource_mapping_DRS_cell, ...
@@ -273,7 +273,7 @@ classdef rx_t < matlab.mixin.Copyable
                 return;
             end
 
-            % decoding was successful, however, the CRC can still be incorrect
+            % decoding was successful, i.e. CRC is correct, however, the data can still be incorrect
             if sum(tx.packet_data.plcf_bits - double(obj.packet_data.plcf_bits_recovered)) == 0
                 ret = true;
             else
@@ -288,7 +288,7 @@ classdef rx_t < matlab.mixin.Copyable
                 return;
             end
 
-            % decoding was successful, however, the CRC can still be incorrect
+            % decoding was successful, i.e. CRC is correct, however, the data can still be incorrect
             if sum(tx.packet_data.tb_bits - double(obj.packet_data.tb_bits_recovered)) == 0
                 ret = true;
             else

@@ -4,10 +4,10 @@ function [coarse_metric_threshold_crossing_idx] = coarse_detection(coarse_detect
                                                                    coarse_detection_jumpback, ...
                                                                    n_samples_STF_b_os, ...
                                                                    n_STF_pattern, ...
-                                                                   samples_antenna_ch)
+                                                                   samples_antenna_ch_lpf)
     %% precalculate parameters known at the receiver
 
-    [n_samples_antenna_ch, N_RX] = size(samples_antenna_ch);
+    [n_samples_antenna_ch_lpf, N_RX] = size(samples_antenna_ch_lpf);
 
     assert(mod(n_samples_STF_b_os, n_STF_pattern) == 0);
 
@@ -15,17 +15,17 @@ function [coarse_metric_threshold_crossing_idx] = coarse_detection(coarse_detect
 
     %% run packet detection
 
-    % For each RX antenna, we go over all samples and calculate a metric until we cross a predefined threshold_
+    % For each RX antenna, we go over all samples and calculate a metric until we cross a predefined threshold
     % We need the sample index of this threshold crossings.
     coarse_metric_threshold_crossing_idx = zeros(N_RX, 1);
 
     for i=1:1:N_RX
         
         % get all samples of this particular antenna
-        samples_antenna_single = samples_antenna_ch(:,i);
+        samples_antenna_single = samples_antenna_ch_lpf(:,i);
 
         % container for detection metric
-        metric = zeros(n_samples_antenna_ch - 2*n_samples_STF_b_os, 1);
+        metric = zeros(n_samples_antenna_ch_lpf - 2*n_samples_STF_b_os, 1);
         
         % the step must be small enough to find every STF at every SNR
         for k = 1 : coarse_detection_step : numel(metric)

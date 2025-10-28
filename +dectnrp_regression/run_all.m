@@ -3,11 +3,11 @@ function [] = run_all()
     close all;
     clc;
 
-    % test typically taking < 1 min
+    % tests typically taking < 1 min
     run_single("dectnrp_regression.channel.time_reproducibility");
     run_single("dectnrp_regression.config.channel_coding_pdc");
 
-    % test typically taking >> 1 min
+    % tests typically taking >> 1 min
     run_single("dectnrp_regression.config.single_packet_tx");
     run_single("dectnrp_regression.config.single_packet_tx_rx");
 

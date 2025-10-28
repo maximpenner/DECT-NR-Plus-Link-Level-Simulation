@@ -36,7 +36,6 @@ classdef sync_t < matlab.mixin.Copyable
     methods
         function obj = sync_t(tx)
             assert(isa(tx, "dectnrp_tx.tx_t"));
-            assert(tx.config.is_valid());
 
             obj.config = tx.config;
             obj.derived = tx.derived;
@@ -56,9 +55,13 @@ classdef sync_t < matlab.mixin.Copyable
 
             %% low-pass filtering 
 
-            % If oversampling is used, we have to remove out-of-band noise. Otherwise synchronization in time domain is impaired.
+            % If oversampling is used, we have to remove out-of-band noise, otherwise synchronization in time domain is impaired.
+            % This low pass filtered signal is only used for synchronization algorithms.
+            % The signal fed to the FFT still contains the out-of-band noise, since the FFT itself is an LPF.
             if obj.lpf_enable && obj.config.oversampling > 1
-                samples_antenna_ch = dectnrp_sync.lpf(samples_antenna_ch, obj.config.oversampling);
+                samples_antenna_ch_lpf = dectnrp_sync.lpf(samples_antenna_ch, obj.config.oversampling);
+            else
+                samples_antenna_ch_lpf = samples_antenna_ch;
             end
         
             %% detection by searching for a coarse metric threshold crossing
@@ -69,7 +72,7 @@ classdef sync_t < matlab.mixin.Copyable
                                                                                  obj.coarse_detection_jumpback, ...
                                                                                  obj.n_samples_STF_b_os, ...
                                                                                  obj.derived.n_STF_pattern, ...
-                                                                                 samples_antenna_ch);
+                                                                                 samples_antenna_ch_lpf);
         
             %% after detection, extract the range of samples required for the upcoming steps
         
@@ -82,7 +85,7 @@ classdef sync_t < matlab.mixin.Copyable
                 B = A + obj.coarse_peak_search_length + obj.fine_peak_search_area + obj.n_samples_STF_b_os;
             end
             
-            samples_antenna_ch_required = samples_antenna_ch(A:B, :);
+            samples_antenna_ch_lpf_required = samples_antenna_ch_lpf(A:B, :);
         
             %% search for the coarse peak starting from the coarse metric threshold crossing
         
@@ -95,15 +98,15 @@ classdef sync_t < matlab.mixin.Copyable
                                                               obj.coarse_peak_threshold, ...
                                                               obj.n_samples_STF_b_os, ...
                                                               obj.derived.n_STF_pattern, ...
-                                                              samples_antenna_ch, ...
-                                                              samples_antenna_ch_required);
+                                                              samples_antenna_ch_lpf, ...
+                                                              samples_antenna_ch_lpf_required);
         
             %% at the coarse peak, determine and correct the fractional carrier frequency offset
         
             % extract samples at coarse peak
             samples_antenna_stf_at_coarse_peak = zeros(obj.n_samples_STF_b_os, N_RX);
             for i=1:1:N_RX
-                samples_antenna_stf_at_coarse_peak(:,i) = samples_antenna_ch_required(coarse_peak_idx : coarse_peak_idx + obj.n_samples_STF_b_os - 1, i);
+                samples_antenna_stf_at_coarse_peak(:,i) = samples_antenna_ch_lpf_required(coarse_peak_idx : coarse_peak_idx + obj.n_samples_STF_b_os - 1, i);
             end
         
             % use the STFs and determine a fractional CFO
@@ -141,8 +144,8 @@ classdef sync_t < matlab.mixin.Copyable
                                                                             obj.fine_peak_search_area, ...
                                                                             obj.n_samples_STF_b_os, ...
                                                                             obj.stf_templates, ...
-                                                                            samples_antenna_ch, ...
-                                                                            samples_antenna_ch_required);
+                                                                            samples_antenna_ch_lpf, ...
+                                                                            samples_antenna_ch_lpf_required);
         
             %% convert local indices to global indices
         
@@ -208,6 +211,7 @@ classdef sync_t < matlab.mixin.Copyable
             obj.stf_templates = dectnrp_rx.stf_templates(obj.config);
 
             %% low-pass filtering to remove out-of-band noise
+            
             obj.lpf_enable = true;
         
             %% STF Detection based on auto-correlation of incoming samples

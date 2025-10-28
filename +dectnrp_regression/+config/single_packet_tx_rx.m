@@ -7,7 +7,7 @@ function [success] = single_packet_tx_rx()
     range.tm_mode_0_to_11_vec   = 0:1:0;
     range.mcs_index_vec         = 1:1:4;
     range.Z_vec                 = [2048,6144];
-    range.oversampling_vec      = 1;
+    range.oversampling_vec      = [1,2];
     range.codebook_index_vec    = 0:1:0;
     range.PLCF_type_vec         = [1,2];
     range.rv_vec                = 0:1:0;
@@ -35,9 +35,16 @@ function [] = test_per_config(config)
     % create a DECT NR+ packet
     tx.generate_random_packet();
     
-    % create channel
+    % create channel configuration
     channel_config = dectnrp_channel.config_t(config.verbosity, 'AWGN', tx, rx);
+
+    % change channel configuration
     channel_config.snr_db = 50;
+    if config.oversampling == 1
+        channel_config.sto_fractional = 0;
+    end
+
+    % create channel
     channel = dectnrp_channel.channel_t(channel_config);
     
     % process one DECT NR+ packet

@@ -34,16 +34,6 @@ classdef config_t < matlab.mixin.Copyable
                 assert(~isempty(rx));
 
                 obj = obj.set_example_values(verbosity, type, tx, rx);
-
-                assert(obj.is_valid());
-            end
-        end
-
-        function ret = is_valid(obj)
-            ret = true;
-
-            if isempty(obj.verbosity)
-                ret = false;
             end
         end
     end

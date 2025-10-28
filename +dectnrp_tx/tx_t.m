@@ -7,14 +7,13 @@ classdef tx_t < matlab.mixin.Copyable
         % They are described in clause 4 and 5 of ETSI TS 103 636-3.
         derived;
 
-        % intermediate results during packet decoding
+        % intermediate results during packet encoding
         packet_data;
     end
     
     methods
         function obj = tx_t(config)
             assert(isa(config, "dectnrp_tx.config_t"));
-            assert(config.is_valid());
             
             obj.config = config;
             obj.set_derived();

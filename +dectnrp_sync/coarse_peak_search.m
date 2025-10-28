@@ -7,11 +7,11 @@ function [coarse_peak_idx] = coarse_peak_search(verbosity, ...
                                                 coarse_peak_threshold, ...
                                                 n_samples_STF_b_os, ...
                                                 n_STF_pattern, ...
-                                                samples_antenna_ch, ...
-                                                samples_antenna_ch_required)
+                                                samples_antenna_ch_lpf, ...
+                                                samples_antenna_ch_lpf_required)
     %% precalculate parameters known at the receiver
 
-    [n_samples_antenna, N_RX] = size(samples_antenna_ch);
+    [n_samples_antenna_ch_lpf, N_RX] = size(samples_antenna_ch_lpf);
 
     assert(mod(n_samples_STF_b_os, n_STF_pattern) == 0);
 
@@ -32,7 +32,7 @@ function [coarse_peak_idx] = coarse_peak_search(verbosity, ...
     for i=1:1:N_RX
         
         % get samples of this particular antenna
-        samples_antenna_single = samples_antenna_ch_required(:,i);
+        samples_antenna_single = samples_antenna_ch_lpf_required(:,i);
 
         % container for detection metric
         metric = zeros(coarse_peak_search_length, 1);
@@ -42,7 +42,7 @@ function [coarse_peak_idx] = coarse_peak_search(verbosity, ...
 
             % We found the packet too late. This can't happen in a real receiver, but here we have a limited amount of samples.
             % Nevertheless, this should barely ever happen.
-            if m + n_samples_STF_b_os-1 > n_samples_antenna
+            if m + n_samples_STF_b_os-1 > n_samples_antenna_ch_lpf
                 break;
             end
 
