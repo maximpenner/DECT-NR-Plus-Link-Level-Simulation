@@ -18,7 +18,8 @@ function [success] = channel_coding_pdc()
     try
         dectnrp_regression.config.parfor_harness(range, @test_per_config);
     catch ME
-        fprintf("Test 0, error message: %s\n\n", dbstack().name, ME.message);
+        s = dbstack;
+        fprintf("Test %s, error message: %s\n\n", s(1).name, ME.message);
         success = false;
         return;
     end
