@@ -20,122 +20,6 @@ classdef tx_t < matlab.mixin.Copyable
             
             obj.packet_data = [];
         end
-
-        % This method is called in the constructor. It basically does all the calculations of clause 4 and 5.
-        function [] = set_derived(obj)
-            % clause 7.2
-            tm_mode = dectnrp_7_transmission_encoding.transmission_modes(obj.config.tm_mode_0_to_11);
-        
-            % Annex A
-            mcs = dectnrp_Annex_A.modulation_and_coding_scheme(obj.config.mcs_index);
-        
-            % clause 4.3
-            numerology = dectnrp_4_physical_layer_principles.numerologies(obj.config.u, obj.config.b);
-        
-            % clause 4.4
-            [T_frame, N_FRAME_slot, T_slot] = dectnrp_4_physical_layer_principles.frame_structure();
-        
-            % clause 4.5
-            k_b_OCC = dectnrp_4_physical_layer_principles.physical_resources(numerology.N_b_OCC);
-        
-            % clause 5.1
-            N_PACKET_symb = dectnrp_5_physical_layer_transmissions.Transmission_packet_structure(numerology, ...
-                                                                                                 obj.config.PacketLengthType, ...
-                                                                                                 obj.config.PacketLength, ...
-                                                                                                 tm_mode.N_eff_TX, ...
-                                                                                                 obj.config.u);
-            
-            % clause 5.2.2
-            [physical_resource_mapping_STF_cell] = dectnrp_5_physical_layer_transmissions.STF(numerology, ...
-                                                                                              k_b_OCC, ...
-                                                                                              tm_mode.N_eff_TX, ...
-                                                                                              obj.config.b);
-        
-            % clause 5.2.3
-            [physical_resource_mapping_DRS_cell] = dectnrp_5_physical_layer_transmissions.DRS(numerology, ...
-                                                                                              k_b_OCC, ...
-                                                                                              tm_mode.N_TS, ...
-                                                                                              tm_mode.N_eff_TX, ...
-                                                                                              N_PACKET_symb, ...
-                                                                                              obj.config.b);
-        
-            % clause 5.2.4
-            [physical_resource_mapping_PCC_cell] = dectnrp_5_physical_layer_transmissions.PCC(numerology, ...
-                                                                                              k_b_OCC, ...
-                                                                                              tm_mode.N_TS, ...
-                                                                                              N_PACKET_symb, ...
-                                                                                              physical_resource_mapping_STF_cell, ...
-                                                                                              physical_resource_mapping_DRS_cell);
-        
-            % clause 5.2.5
-            [physical_resource_mapping_PDC_cell, N_PDC_subc] = dectnrp_5_physical_layer_transmissions.PDC(obj.config.u, ...
-                                                                                                          numerology, ...
-                                                                                                          k_b_OCC, ...
-                                                                                                          N_PACKET_symb, ...
-                                                                                                          tm_mode.N_TS, ...
-                                                                                                          tm_mode.N_eff_TX, ...
-                                                                                                          physical_resource_mapping_STF_cell, ...
-                                                                                                          physical_resource_mapping_DRS_cell, ...
-                                                                                                          physical_resource_mapping_PCC_cell);
-        
-            % clause 5.3
-            N_TB_bits = dectnrp_5_physical_layer_transmissions.Transport_block_size(tm_mode, mcs, N_PDC_subc, obj.config.Z);
-
-            % clause 7.6.6
-            G = tm_mode.N_SS*N_PDC_subc*mcs.N_bps;
-        
-            % save data in structure
-            obj.derived.tm_mode                             = tm_mode;
-            obj.derived.mcs                                 = mcs;
-            obj.derived.numerology                          = numerology;
-            obj.derived.T_frame                             = T_frame;
-            obj.derived.N_FRAME_slot                        = N_FRAME_slot;
-            obj.derived.T_slot                              = T_slot;
-            obj.derived.k_b_OCC                             = k_b_OCC;
-            obj.derived.N_PACKET_symb                       = N_PACKET_symb;
-            obj.derived.physical_resource_mapping_STF_cell  = physical_resource_mapping_STF_cell;
-            obj.derived.physical_resource_mapping_DRS_cell  = physical_resource_mapping_DRS_cell;
-            obj.derived.physical_resource_mapping_PCC_cell  = physical_resource_mapping_PCC_cell;
-            obj.derived.physical_resource_mapping_PDC_cell  = physical_resource_mapping_PDC_cell;
-            obj.derived.N_PDC_subc                          = N_PDC_subc;
-            obj.derived.N_TB_bits                           = N_TB_bits;
-            obj.derived.G                                   = G;
-        
-            % custom values, all starting with n_
-        
-            % what percentage of the spectrum do we occupy?
-            obj.derived.n_spectrum_occupied = numel(k_b_OCC)/numerology.N_b_DFT;
-        
-            % how long is a symbol (CP included) in samples?
-            obj.derived.n_T_u_symb_samples = (obj.derived.numerology.N_b_DFT*9)/8;
-        
-            % how long is a packet in samples? (Figures 5.1-1, 5.1-2, 5.1-3)
-            obj.derived.n_packet_samples = obj.derived.N_PACKET_symb*obj.derived.n_T_u_symb_samples;
-        
-            % How long are STF, DF and GI in samples? (Figures 5.1-1, 5.1-2, 5.1-3)
-            % How often does the pattern in STF repeat? (Figures 5.1-1, 5.1-2, 5.1-3)
-            switch obj.config.u
-                case 1
-                    obj.derived.n_STF_samples = (obj.derived.n_T_u_symb_samples*14)/9;
-                    obj.derived.n_DF_samples = (obj.derived.N_PACKET_symb-2)*obj.derived.n_T_u_symb_samples;
-                    obj.derived.n_GI_samples = (obj.derived.n_T_u_symb_samples*4)/9;
-                    obj.derived.n_STF_pattern = 7;
-                case {2,4}
-                    obj.derived.n_STF_samples = obj.derived.n_T_u_symb_samples*2;
-                    obj.derived.n_DF_samples = (obj.derived.N_PACKET_symb-3)*obj.derived.n_T_u_symb_samples;
-                    obj.derived.n_GI_samples = obj.derived.n_T_u_symb_samples;
-                    obj.derived.n_STF_pattern = 9;
-                case 8
-                    obj.derived.n_STF_samples = obj.derived.n_T_u_symb_samples*2;
-                    obj.derived.n_DF_samples = (obj.derived.N_PACKET_symb-4)*obj.derived.n_T_u_symb_samples;
-                    obj.derived.n_GI_samples = obj.derived.n_T_u_symb_samples*2;
-                    obj.derived.n_STF_pattern = 9;                  
-            end
-        
-            assert(obj.derived.n_packet_samples == obj.derived.n_STF_samples + obj.derived.n_DF_samples + obj.derived.n_GI_samples);
-        
-            obj.derived.n_pcc_bits_uncoded = 196;
-        end
         
         function [samples_antenna_tx] = generate_packet(obj, plcf_bits, tb_bits)
             
@@ -337,6 +221,124 @@ classdef tx_t < matlab.mixin.Copyable
             ylabel('Absolute Amplitude');
             xlabel('Samples Index');
             ylim([0 3])
+        end
+    end
+
+    methods (Hidden = true)
+        % This method is called in the constructor. It basically does all the calculations of clause 4 and 5.
+        function [] = set_derived(obj)
+            % clause 7.2
+            tm_mode = dectnrp_7_transmission_encoding.transmission_modes(obj.config.tm_mode_0_to_11);
+        
+            % Annex A
+            mcs = dectnrp_Annex_A.modulation_and_coding_scheme(obj.config.mcs_index);
+        
+            % clause 4.3
+            numerology = dectnrp_4_physical_layer_principles.numerologies(obj.config.u, obj.config.b);
+        
+            % clause 4.4
+            [T_frame, N_FRAME_slot, T_slot] = dectnrp_4_physical_layer_principles.frame_structure();
+        
+            % clause 4.5
+            k_b_OCC = dectnrp_4_physical_layer_principles.physical_resources(numerology.N_b_OCC);
+        
+            % clause 5.1
+            N_PACKET_symb = dectnrp_5_physical_layer_transmissions.Transmission_packet_structure(numerology, ...
+                                                                                                 obj.config.PacketLengthType, ...
+                                                                                                 obj.config.PacketLength, ...
+                                                                                                 tm_mode.N_eff_TX, ...
+                                                                                                 obj.config.u);
+            
+            % clause 5.2.2
+            [physical_resource_mapping_STF_cell] = dectnrp_5_physical_layer_transmissions.STF(numerology, ...
+                                                                                              k_b_OCC, ...
+                                                                                              tm_mode.N_eff_TX, ...
+                                                                                              obj.config.b);
+        
+            % clause 5.2.3
+            [physical_resource_mapping_DRS_cell] = dectnrp_5_physical_layer_transmissions.DRS(numerology, ...
+                                                                                              k_b_OCC, ...
+                                                                                              tm_mode.N_TS, ...
+                                                                                              tm_mode.N_eff_TX, ...
+                                                                                              N_PACKET_symb, ...
+                                                                                              obj.config.b);
+        
+            % clause 5.2.4
+            [physical_resource_mapping_PCC_cell] = dectnrp_5_physical_layer_transmissions.PCC(numerology, ...
+                                                                                              k_b_OCC, ...
+                                                                                              tm_mode.N_TS, ...
+                                                                                              N_PACKET_symb, ...
+                                                                                              physical_resource_mapping_STF_cell, ...
+                                                                                              physical_resource_mapping_DRS_cell);
+        
+            % clause 5.2.5
+            [physical_resource_mapping_PDC_cell, N_PDC_subc] = dectnrp_5_physical_layer_transmissions.PDC(obj.config.u, ...
+                                                                                                          numerology, ...
+                                                                                                          k_b_OCC, ...
+                                                                                                          N_PACKET_symb, ...
+                                                                                                          tm_mode.N_TS, ...
+                                                                                                          tm_mode.N_eff_TX, ...
+                                                                                                          physical_resource_mapping_STF_cell, ...
+                                                                                                          physical_resource_mapping_DRS_cell, ...
+                                                                                                          physical_resource_mapping_PCC_cell);
+        
+            % clause 5.3
+            N_TB_bits = dectnrp_5_physical_layer_transmissions.Transport_block_size(tm_mode, mcs, N_PDC_subc, obj.config.Z);
+
+            % clause 7.6.6
+            G = tm_mode.N_SS*N_PDC_subc*mcs.N_bps;
+        
+            % save data in structure
+            obj.derived.tm_mode                             = tm_mode;
+            obj.derived.mcs                                 = mcs;
+            obj.derived.numerology                          = numerology;
+            obj.derived.T_frame                             = T_frame;
+            obj.derived.N_FRAME_slot                        = N_FRAME_slot;
+            obj.derived.T_slot                              = T_slot;
+            obj.derived.k_b_OCC                             = k_b_OCC;
+            obj.derived.N_PACKET_symb                       = N_PACKET_symb;
+            obj.derived.physical_resource_mapping_STF_cell  = physical_resource_mapping_STF_cell;
+            obj.derived.physical_resource_mapping_DRS_cell  = physical_resource_mapping_DRS_cell;
+            obj.derived.physical_resource_mapping_PCC_cell  = physical_resource_mapping_PCC_cell;
+            obj.derived.physical_resource_mapping_PDC_cell  = physical_resource_mapping_PDC_cell;
+            obj.derived.N_PDC_subc                          = N_PDC_subc;
+            obj.derived.N_TB_bits                           = N_TB_bits;
+            obj.derived.G                                   = G;
+        
+            % custom values, all starting with n_
+        
+            % what percentage of the spectrum do we occupy?
+            obj.derived.n_spectrum_occupied = numel(k_b_OCC)/numerology.N_b_DFT;
+        
+            % how long is a symbol (CP included) in samples?
+            obj.derived.n_T_u_symb_samples = (obj.derived.numerology.N_b_DFT*9)/8;
+        
+            % how long is a packet in samples? (Figures 5.1-1, 5.1-2, 5.1-3)
+            obj.derived.n_packet_samples = obj.derived.N_PACKET_symb*obj.derived.n_T_u_symb_samples;
+        
+            % How long are STF, DF and GI in samples? (Figures 5.1-1, 5.1-2, 5.1-3)
+            % How often does the pattern in STF repeat? (Figures 5.1-1, 5.1-2, 5.1-3)
+            switch obj.config.u
+                case 1
+                    obj.derived.n_STF_samples = (obj.derived.n_T_u_symb_samples*14)/9;
+                    obj.derived.n_DF_samples = (obj.derived.N_PACKET_symb-2)*obj.derived.n_T_u_symb_samples;
+                    obj.derived.n_GI_samples = (obj.derived.n_T_u_symb_samples*4)/9;
+                    obj.derived.n_STF_pattern = 7;
+                case {2,4}
+                    obj.derived.n_STF_samples = obj.derived.n_T_u_symb_samples*2;
+                    obj.derived.n_DF_samples = (obj.derived.N_PACKET_symb-3)*obj.derived.n_T_u_symb_samples;
+                    obj.derived.n_GI_samples = obj.derived.n_T_u_symb_samples;
+                    obj.derived.n_STF_pattern = 9;
+                case 8
+                    obj.derived.n_STF_samples = obj.derived.n_T_u_symb_samples*2;
+                    obj.derived.n_DF_samples = (obj.derived.N_PACKET_symb-4)*obj.derived.n_T_u_symb_samples;
+                    obj.derived.n_GI_samples = obj.derived.n_T_u_symb_samples*2;
+                    obj.derived.n_STF_pattern = 9;                  
+            end
+        
+            assert(obj.derived.n_packet_samples == obj.derived.n_STF_samples + obj.derived.n_DF_samples + obj.derived.n_GI_samples);
+        
+            obj.derived.n_pcc_bits_uncoded = 196;
         end
     end
 end

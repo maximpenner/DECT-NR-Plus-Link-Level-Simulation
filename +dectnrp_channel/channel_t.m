@@ -33,6 +33,118 @@ classdef channel_t < handle
     end
     
     methods
+        function [] = set_randomstream_for_channel_reproducibility(obj, seed)
+            obj.r_matlab_MIMO_obj.RandomStream = "mt19937ar with seed";
+            obj.r_matlab_MIMO_obj.Seed = seed;
+        end
+
+        function [] = reset_random_Rayleigh_Rician(obj)
+            if strcmp(obj.config.type,'Rayleigh') == true || strcmp(obj.config.type,'Rician') == true
+                obj.r_matlab_MIMO_obj.reset();
+            end
+        end
+        
+        function [samples_antenna_rx] = pass_samples(obj, samples_antenna_tx, channel_time_in_seconds)
+            
+            if nargin == 2
+                channel_time_in_seconds = 0;
+            end
+            
+            assert(obj.config.N_TX == size(samples_antenna_tx, 2));
+            
+            % apply amplitude
+            samples_antenna_ch = obj.config.amp*samples_antenna_tx;
+
+            % apply STO, CFO and the carrier phase
+            samples_antenna_ch = dectnrp_channel.sto_cfo_phase(samples_antenna_ch, ...
+                                                               obj.config.sto_integer, ...
+                                                               obj.config.sto_fractional, ...
+                                                               obj.config.cfo, ...
+                                                               obj.config.err_phase);
+                    
+            % over-the-air transmission
+            if strcmp(obj.config.type, 'AWGN')
+                samples_antenna_rx = repmat(sum(samples_antenna_ch, 2), 1, obj.config.N_RX);
+            elseif strcmp(obj.config.type, 'Rayleigh') == true || strcmp(obj.config.type, 'Rician') == true
+                samples_antenna_rx = obj.r_matlab_MIMO_obj(samples_antenna_ch, channel_time_in_seconds);
+            else
+                error('Channel neither AWGN, nor Rayleigh, nor Rician, but %s.', obj.config.type);
+            end
+            
+            % thermal noise
+            for i=1:1:obj.config.N_RX
+                samples_antenna_rx(:,i) = awgn(samples_antenna_rx(:,i), obj.config.snr_db, pow2db(1/obj.config.spectrum_occupied));
+            end
+
+            if obj.config.verbosity >= 1
+                obj.plot_channel_properties();
+            end
+        end
+
+        function [] = plot_channel_properties(obj)
+            if strcmp(obj.config.type, 'AWGN')
+                % this print does not make much sense for AGWN
+                return;
+            elseif strcmp(obj.config.type, 'Rayleigh') == true || strcmp(obj.config.type, 'Rician') == true
+                % lookup PDP
+                [pathDelays_beforeInterpolation, avgPathGains_beforeInterpolation] = dectnrp_channel.get_PDP_from_literature(obj.config.r_type, ...
+                                                                                                                             obj.config.r_DS_desired);
+            else
+                error('Channel neither AWGN, nor Rayleigh, nor Rician, but %s.', obj.config.type);
+            end
+
+            avgPathGains_beforeInterpolation_linear = db2pow(avgPathGains_beforeInterpolation);
+
+            % extract for readability
+            pathDelays = obj.r_matlab_MIMO_obj.PathDelays;
+            avgPathGains = obj.r_matlab_MIMO_obj.AveragePathGains;
+            avgPathGains_linear = db2pow(avgPathGains);
+
+            figure()
+            clf()
+
+            subplot(2,1,1);
+            plot(pathDelays_beforeInterpolation, avgPathGains_beforeInterpolation_linear, 'b-o');
+            hold on
+            plot(pathDelays, avgPathGains_linear,'r-x');
+            title('Channel Path Gains linear');
+            xlabel('Time');
+            ylabel('Path Gain');
+            legend('ITU', 'Interpolation');
+            grid on
+
+            % not yet normalized, just for comparison
+            avgPathGains = pow2db(avgPathGains_linear);
+
+            subplot(2,1,2);
+            plot(pathDelays_beforeInterpolation, avgPathGains_beforeInterpolation, 'b-o');
+            hold on
+            plot(pathDelays, avgPathGains, 'r-x');
+            title('Channel Path Gains logarithmic');
+            xlabel('Time');
+            ylabel('Path Gain (dB)');
+            legend('ITU', 'Interpolation');
+            grid on
+
+            % calculate key property for exponential decay
+            mean_tau_weighted = sum(pathDelays.*avgPathGains_linear)/sum(avgPathGains_linear);
+            rms_tau = sqrt(sum(((pathDelays-mean_tau_weighted).^2).*avgPathGains_linear)/sum(avgPathGains_linear));
+        
+            offset = 0.74;
+            separation = 0.015;
+            dectnrp_util.annotation(0.5, offset - 0*separation, sprintf('Sampling Rate: %f MS/s\n', obj.config.r_samp_rate/1e6));
+            dectnrp_util.annotation(0.5, offset - 1*separation, sprintf('Sampling time Ts: %f ns\n', 1/obj.config.r_samp_rate/1e-9));
+            dectnrp_util.annotation(0.5, offset - 2*separation, sprintf('Largest delay: %f ns\n', pathDelays(end)/1e-9));
+            dectnrp_util.annotation(0.5, offset - 3*separation, sprintf('PDP sampling points: %d\n', numel(pathDelays)));
+            dectnrp_util.annotation(0.5, offset - 4*separation, sprintf('Tau mean: %f ns\n', mean(pathDelays)/1e-9));
+            dectnrp_util.annotation(0.5, offset - 5*separation, sprintf('Tau mean weighted: %f ns\n', mean_tau_weighted/1e-9));
+            dectnrp_util.annotation(0.5, offset - 6*separation, sprintf('Tau rms weighted: %f ns\n', rms_tau/1e-9));
+            dectnrp_util.annotation(0.5, offset - 7*separation, sprintf('Coherence Bandwidth: %f MHz\n', 1/rms_tau/1e6));
+            dectnrp_util.annotation(0.5, offset - 8*separation, sprintf('Occupied Bandwidth: %f MHz\n\n', obj.config.r_samp_rate*obj.config.spectrum_occupied/1e6));
+        end
+    end
+
+    methods (Hidden = true)
         function init_Rayleigh_Rician_channel(obj)
             
             % lookup PDP
@@ -150,116 +262,6 @@ classdef channel_t < handle
 
             % switch back to dB
             avgPathGains = pow2db(avgPathGains_linear);
-        end
-
-        function [] = set_randomstream_for_channel_reproducibility(obj, seed)
-            obj.r_matlab_MIMO_obj.RandomStream = "mt19937ar with seed";
-            obj.r_matlab_MIMO_obj.Seed = seed;
-        end
-        
-        function [samples_antenna_rx] = pass_samples(obj, samples_antenna_tx, channel_time_in_seconds)
-            
-            if nargin == 2
-                channel_time_in_seconds = 0;
-            end
-            
-            assert(obj.config.N_TX == size(samples_antenna_tx, 2));
-            
-            % apply amplitude
-            samples_antenna_ch = obj.config.amp*samples_antenna_tx;
-
-            % apply STO, CFO and the carrier phase
-            samples_antenna_ch = dectnrp_channel.sto_cfo_phase(samples_antenna_ch, ...
-                                                               obj.config.sto_integer, ...
-                                                               obj.config.sto_fractional, ...
-                                                               obj.config.cfo, ...
-                                                               obj.config.err_phase);
-                    
-            % over-the-air transmission
-            if strcmp(obj.config.type, 'AWGN')
-                samples_antenna_rx = repmat(sum(samples_antenna_ch, 2), 1, obj.config.N_RX);
-            elseif strcmp(obj.config.type, 'Rayleigh') == true || strcmp(obj.config.type, 'Rician') == true
-                samples_antenna_rx = obj.r_matlab_MIMO_obj(samples_antenna_ch, channel_time_in_seconds);
-            else
-                error('Channel neither AWGN, nor Rayleigh, nor Rician, but %s.', obj.config.type);
-            end
-            
-            % thermal noise
-            for i=1:1:obj.config.N_RX
-                samples_antenna_rx(:,i) = awgn(samples_antenna_rx(:,i), obj.config.snr_db, pow2db(1/obj.config.spectrum_occupied));
-            end
-
-            if obj.config.verbosity >= 1
-                obj.plot_channel_properties();
-            end
-        end
-        
-        function [] = reset_random_Rayleigh_Rician(obj)
-            if strcmp(obj.config.type,'Rayleigh') == true || strcmp(obj.config.type,'Rician') == true
-                obj.r_matlab_MIMO_obj.reset();
-            end
-        end
-
-        function [] = plot_channel_properties(obj)
-            if strcmp(obj.config.type, 'AWGN')
-                % this print does not make much sense for AGWN
-                return;
-            elseif strcmp(obj.config.type, 'Rayleigh') == true || strcmp(obj.config.type, 'Rician') == true
-                % lookup PDP
-                [pathDelays_beforeInterpolation, avgPathGains_beforeInterpolation] = dectnrp_channel.get_PDP_from_literature(obj.config.r_type, ...
-                                                                                                                             obj.config.r_DS_desired);
-            else
-                error('Channel neither AWGN, nor Rayleigh, nor Rician, but %s.', obj.config.type);
-            end
-
-            avgPathGains_beforeInterpolation_linear = db2pow(avgPathGains_beforeInterpolation);
-
-            % extract for readability
-            pathDelays = obj.r_matlab_MIMO_obj.PathDelays;
-            avgPathGains = obj.r_matlab_MIMO_obj.AveragePathGains;
-            avgPathGains_linear = db2pow(avgPathGains);
-
-            figure()
-            clf()
-
-            subplot(2,1,1);
-            plot(pathDelays_beforeInterpolation, avgPathGains_beforeInterpolation_linear, 'b-o');
-            hold on
-            plot(pathDelays, avgPathGains_linear,'r-x');
-            title('Channel Path Gains linear');
-            xlabel('Time');
-            ylabel('Path Gain');
-            legend('ITU', 'Interpolation');
-            grid on
-
-            % not yet normalized, just for comparison
-            avgPathGains = pow2db(avgPathGains_linear);
-
-            subplot(2,1,2);
-            plot(pathDelays_beforeInterpolation, avgPathGains_beforeInterpolation, 'b-o');
-            hold on
-            plot(pathDelays, avgPathGains, 'r-x');
-            title('Channel Path Gains logarithmic');
-            xlabel('Time');
-            ylabel('Path Gain (dB)');
-            legend('ITU', 'Interpolation');
-            grid on
-
-            % calculate key property for exponential decay
-            mean_tau_weighted = sum(pathDelays.*avgPathGains_linear)/sum(avgPathGains_linear);
-            rms_tau = sqrt(sum(((pathDelays-mean_tau_weighted).^2).*avgPathGains_linear)/sum(avgPathGains_linear));
-        
-            offset = 0.74;
-            separation = 0.015;
-            dectnrp_util.annotation(0.5, offset - 0*separation, sprintf('Sampling Rate: %f MS/s\n', obj.config.r_samp_rate/1e6));
-            dectnrp_util.annotation(0.5, offset - 1*separation, sprintf('Sampling time Ts: %f ns\n', 1/obj.config.r_samp_rate/1e-9));
-            dectnrp_util.annotation(0.5, offset - 2*separation, sprintf('Largest delay: %f ns\n', pathDelays(end)/1e-9));
-            dectnrp_util.annotation(0.5, offset - 3*separation, sprintf('PDP sampling points: %d\n', numel(pathDelays)));
-            dectnrp_util.annotation(0.5, offset - 4*separation, sprintf('Tau mean: %f ns\n', mean(pathDelays)/1e-9));
-            dectnrp_util.annotation(0.5, offset - 5*separation, sprintf('Tau mean weighted: %f ns\n', mean_tau_weighted/1e-9));
-            dectnrp_util.annotation(0.5, offset - 6*separation, sprintf('Tau rms weighted: %f ns\n', rms_tau/1e-9));
-            dectnrp_util.annotation(0.5, offset - 7*separation, sprintf('Coherence Bandwidth: %f MHz\n', 1/rms_tau/1e6));
-            dectnrp_util.annotation(0.5, offset - 8*separation, sprintf('Occupied Bandwidth: %f MHz\n\n', obj.config.r_samp_rate*obj.config.spectrum_occupied/1e6));
         end
     end
 end
