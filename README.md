@@ -27,6 +27,7 @@ Advanced Topics
 
 1. [BER and PER Performance References](#ber-and-per-performance-references)
 2. [Synchronization](#synchronization)
+3. [Possible PHY Enhancements](#possible-phy-enhancements)
 
 ## Starting
 
@@ -94,7 +95,7 @@ Interpolated average path gains for a doubly selective channel.
 - [x] add regression tests for different packet configurations
 - [x] implement Z=2048
 - [ ] implement limited number of soft bits
-- [ ] add 1024-QAM
+- [x] add 1024-QAM
 - [ ] implement basic MIMO algorithms for N<sub>SS</sub> > 1
 - [ ] residual CFO estimation based on STF and DRS
 - [ ] residual STO estimation based on STF and DRS
@@ -123,4 +124,13 @@ Fine Metric with Cover Sequence | Fine Metric without Cover Sequence
 
 Thanks to the cover sequence, only a single fine peak remains without significant secondary peaks. Without the cover sequence, there are significant secondary peaks that can exceed the main peak at low SNR or high CFO. For this reason, in this repository, the CFO is first corrected at the coarse peak before the cross-correlation is applied. The shape of the coarse metric is not affected by a CFO.
 
-If the entire synchronization consists only of a cross-correlation, the cross-correlation must be as short as possible (e.g. two patterns of the STF) so that the CFO does not have a significant impact on the fine peak. At the same time, the cross-correlation must not be too short, otherwise the peak will not be distinct enough at low SNR.  
+If the entire synchronization consists only of a cross-correlation, the cross-correlation must be as short as possible (e.g. two patterns of the STF) so that the CFO does not have a significant impact on the fine peak. At the same time, the cross-correlation must not be too short, otherwise the peak will not be distinct enough at low SNR.
+
+## Possible PHY Enhancements
+
+1. Shorten the STF to the point of removal for scheduled access packets that are not beacons. STO and CFO estimates as well as the optimal AGC settings are short-term stable.
+2. Shorten the PCC as it contains redundant information, particularly for scheduled access traffic.
+3. Move parts of the PCC to the PDC if the latter uses a higher modulation order.
+4. Add a 45-degree rotation to the PCC relative to the STF to signal multiple transmit streams or a shorter PCC.
+5. Use mini-slots that are even shorter than subslots to combine larger subcarrier spacings with short transmissions.
+6. Channel bonding

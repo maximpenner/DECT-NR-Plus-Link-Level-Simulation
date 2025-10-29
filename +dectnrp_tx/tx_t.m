@@ -17,7 +17,6 @@ classdef tx_t < matlab.mixin.Copyable
             
             obj.config = config;
             obj.set_derived();
-            
             obj.packet_data = [];
         end
         
@@ -62,12 +61,12 @@ classdef tx_t < matlab.mixin.Copyable
             % The receiver needs to know if signal is beamformed or not for channel sounding purposes.
             % 7.2
             if mode_0_to_11 == 0
-                precoding_identity_matrix = true;
+                is_precoding_identity_matrix = true;
             else
                 if codebook_index == 0
-                    precoding_identity_matrix = true;
+                    is_precoding_identity_matrix = true;
                 else
-                    precoding_identity_matrix = false;
+                    is_precoding_identity_matrix = false;
                 end
             end
             
@@ -75,7 +74,7 @@ classdef tx_t < matlab.mixin.Copyable
             % pcc_enc_dbg and pdc_enc_dbg contain debugging information.
             [x_PCC, pcc_enc_dbg] = dectnrp_7_transmission_encoding.PCC_encoding(plcf_bits, ...
                                                                                 CL, ...
-                                                                                precoding_identity_matrix);
+                                                                                is_precoding_identity_matrix);
             [x_PDC, pdc_enc_dbg] = dectnrp_7_transmission_encoding.PDC_encoding(tb_bits, ...
                                                                                 G, ...
                                                                                 Z, ...

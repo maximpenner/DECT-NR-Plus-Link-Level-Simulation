@@ -8,7 +8,7 @@ classdef config_t < matlab.mixin.Copyable
         PacketLength        % min is 1, max is 16 according to Table 6.2.1-2a in part 4
         tm_mode_0_to_11     % Table 7.2-1, mode determines whether transmission is closed loop or not, values range from 0 to 11
         mcs_index           % Table A-1 in part 3, values range from 0 to 11
-        Z                   % 5.3, maximum codeblock size
+        Z                   % 5.3, maximum codeblock size Z = 2048 or 6144
         oversampling        % By how much do we oversample our OFDM packet compared to critical sampling (insert zeros at spectrum edges before IFFT)?
         codebook_index      % 6.3.4, any value other than 0 makes packet beamformed, throws error if out of bound (depends on tm_mode_0_to_11)
         PLCF_type           % Type 1 is 40 bits, Type 2 is 80 bits

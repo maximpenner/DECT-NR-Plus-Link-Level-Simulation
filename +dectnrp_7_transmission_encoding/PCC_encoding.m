@@ -1,4 +1,4 @@
-function [x_PCC, pcc_enc_dbg] = PCC_encoding(plcf_bits, CL, precoding_identity_matrix)
+function [x_PCC, pcc_enc_dbg] = PCC_encoding(plcf_bits, CL, is_precoding_identity_matrix)
 
     % notation following Figure 7.5.1-1: Physical control channel encoding
 
@@ -9,11 +9,11 @@ function [x_PCC, pcc_enc_dbg] = PCC_encoding(plcf_bits, CL, precoding_identity_m
     mask_BF = logical(repmat([1, 0], 1, 8));
     mask_CL_BF = xor(mask_CL, mask_BF);
     
-    if CL == true && precoding_identity_matrix == true
+    if CL == true && is_precoding_identity_matrix == true
         mask = mask_CL;
-    elseif CL == false && precoding_identity_matrix == false
+    elseif CL == false && is_precoding_identity_matrix == false
         mask = mask_BF;
-    elseif CL == true && precoding_identity_matrix == false
+    elseif CL == true && is_precoding_identity_matrix == false
         mask = mask_CL_BF;
     else
         mask = false(1,16);

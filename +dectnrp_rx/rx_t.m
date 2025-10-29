@@ -43,11 +43,12 @@ classdef rx_t < matlab.mixin.Copyable
             obj.HARQ_buf = [];
         end
 
-        % Wiener filter interpolates between DRS pilots. Optimal interpolation depends on channel properties.
-        % We use a static filter which is used regardless of the instantaneous channel.
-        % For noise, the best case value is assumed, for delay and Doppler spread the worst case value.
-        % To improve performance, different sets should be precalculated for different SNRs.
+        % update channel estimation weights
         function [] = set_weights(obj, noise_estim, f_d_hertz, tau_rms_sec)
+            % The channel estimation filter interpolates between DRS pilots.
+            % In this repository, we use precalculated static filters.
+            % When calculating a static Wiener filter´, the largest conceivable delay and Doppler spreads are assumed.
+            % For noise, multiple filters are calculated for different SNRs and chosen depending on the instantaneous measured SNR.
             obj.channel_estimation_config.weights = dectnrp_rx.channel_estimation.weights(obj.derived.numerology.N_b_DFT, ...
                                                                                           obj.derived.N_PACKET_symb, ...
                                                                                           obj.derived.numerology.N_b_CP, ...
@@ -62,7 +63,6 @@ classdef rx_t < matlab.mixin.Copyable
         
         % We pass on the samples as they are received at the antennas and we try to extract the PCC and PDC bits.
         % It gets more complicated when using HARQ as calls to this function depend on each other.
-        % The handle to tx is required to determine the SINR
         function [plcf_bits_recovered, tb_bits_recovered] = demod_decode_packet(obj, samples_antenna_rx)
             
             %% for the purpose of readability, extract all variables that are necessary at this stage
