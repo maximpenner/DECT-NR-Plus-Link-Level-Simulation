@@ -1,19 +1,19 @@
 classdef rx_t < matlab.mixin.Copyable
     
     properties
-        % copied from dectnrp_tx.tx_t()
+        % copied from tx
         config;
         derived;
 
         % number of antennas at the receiver
-        N_RX
+        N_RX;
 
         % processing after the FFT in frequency domain
-        sto_fractional_config           % based on STF and optionally DRS
-        sto_residual_config             % based on DRS
-        cfo_residual_config             % based on DRS
-        channel_estimation_config       % based on optionally STF and DRS
-        equalization_detection_config
+        sto_fractional_config;          % based on STF and optionally DRS
+        sto_residual_config;            % based on DRS
+        cfo_residual_config;            % based on DRS
+        channel_estimation_config;      % based on optionally STF and DRS
+        equalization_detection_config;
 
         % intermediate results during packet decoding
         packet_data;
