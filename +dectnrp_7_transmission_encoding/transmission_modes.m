@@ -1,4 +1,4 @@
-function [t_modes] = transmission_modes(tm_mode_0_to_11)
+function [tm_mode] = transmission_modes(tm_mode_0_to_11)
 
     switch tm_mode_0_to_11
         case 0
@@ -80,10 +80,10 @@ function [t_modes] = transmission_modes(tm_mode_0_to_11)
             error('Unknown transmission mode %f.', tm_mode_0_to_11);
     end
     
-    t_modes.mode_0_to_11 = tm_mode_0_to_11;
-    t_modes.N_eff_TX = N_eff_TX;
-    t_modes.N_SS = N_SS;
-    t_modes.CL = CL;
-    t_modes.N_TS = N_TS;
-    t_modes.N_TX = N_TX;    
+    tm_mode.mode_0_to_11 = tm_mode_0_to_11;
+    tm_mode.N_eff_TX = N_eff_TX;
+    tm_mode.N_SS = N_SS;
+    tm_mode.CL = CL;
+    tm_mode.N_TS = N_TS;
+    tm_mode.N_TX = N_TX;    
 end

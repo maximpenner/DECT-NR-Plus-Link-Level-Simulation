@@ -7,7 +7,8 @@ function [] = beamforming()
     config.verbosity = 0;
 
     % 27 different beamforming matrices for mode 7
-    codebook_index_max = 27;
+    tm_mode = dectnrp_7_transmission_encoding.transmission_modes(config.tm_mode_0_to_11);
+    [~, codebook_index_max] = dectnrp_6_generic_procedures.Beamforming_W(tm_mode.N_TS, tm_mode.N_TX, 0);
     codebook_index_vec = 0:codebook_index_max;
     
     % create transmitter
@@ -58,7 +59,7 @@ function [] = beamforming()
     plot(sinr_improvement);
     yline(pow2db(mean(db2pow(sinr_improvement))))
     grid on
-    legend(["SINR improvement in dB relative to non-beamformed packet with optimal codebook index", "average across all packets"]);
+    legend(["SINR improvement in dB relative to non-beamformed packet with optimal non-zero codebook index", "average across all packets"]);
     ylim([-20 20])
     ylabel("SINR Improvement in dB")
     xlabel("Packet Index");

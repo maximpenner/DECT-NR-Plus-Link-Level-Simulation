@@ -1,4 +1,4 @@
-function [W] = Beamforming_W(N_TS, N_TX, codebook_index)
+function [W, codebook_index_max] = Beamforming_W(N_TS, N_TX, codebook_index)
 
     q = 1i;
 
@@ -6,6 +6,8 @@ function [W] = Beamforming_W(N_TS, N_TX, codebook_index)
     if N_TS == 1 && N_TX == 1
         
         W = 1;
+
+        codebook_index_max = 0;
     
     elseif N_TS == 1 && N_TX == 2
         
@@ -25,6 +27,8 @@ function [W] = Beamforming_W(N_TS, N_TX, codebook_index)
             otherwise
                 error('Unknwon codebook index %d.', codebook_index);
         end
+
+        codebook_index_max = 5;
         
     % Table 6.3.4-2
     elseif N_TS == 1 && N_TX == 4
@@ -92,6 +96,8 @@ function [W] = Beamforming_W(N_TS, N_TX, codebook_index)
             otherwise
                 error('Unknwon codebook index %d.', codebook_index);
         end
+
+        codebook_index_max = 27;
         
     % Table 6.3.4-3
     elseif N_TS == 2 && N_TX == 2
@@ -106,7 +112,9 @@ function [W] = Beamforming_W(N_TS, N_TX, codebook_index)
                 
             otherwise
                 error('Unknown codebook index %d.', codebook_index);
-        end         
+        end
+
+        codebook_index_max = 2;
         
     % Table 6.3.4-4
     elseif N_TS == 2 && N_TX == 4
@@ -226,7 +234,9 @@ function [W] = Beamforming_W(N_TS, N_TX, codebook_index)
                 
             otherwise
                 error('Unknwon codebook index %d.', codebook_index);
-        end         
+        end
+
+        codebook_index_max = 21;
         
     % Table 6.3.4-2
     elseif N_TS == 4 && N_TX == 4
@@ -260,7 +270,9 @@ function [W] = Beamforming_W(N_TS, N_TX, codebook_index)
                 
             otherwise
                 error('Unknwon codebook index %d.', codebook_index);
-        end 
+        end
+
+        codebook_index_max = 4;
         
     % Table 6.3.4-2
     elseif N_TS == 8 && N_TX == 8
@@ -272,7 +284,9 @@ function [W] = Beamforming_W(N_TS, N_TX, codebook_index)
                 
             otherwise
                 error('Unknwon codebook index %d.', codebook_index);
-        end       
+        end
+
+        codebook_index_max = 1;
         
     else
         error('Beamforming configuration is unknown, N_TS = %d and N_TX = %d.', N_TS, N_TX);
