@@ -33,6 +33,7 @@ classdef channel_t < handle
     end
     
     methods
+        % Must be called to enable channel reproducibility, i.e. having the same channel coefficients if evaluating at the same time.
         function [] = set_randomstream_for_channel_reproducibility(obj, seed)
             obj.r_matlab_MIMO_obj.RandomStream = "mt19937ar with seed";
             obj.r_matlab_MIMO_obj.Seed = seed;

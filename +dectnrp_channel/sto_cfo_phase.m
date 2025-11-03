@@ -4,23 +4,24 @@ function [samples_antenna] = sto_cfo_phase(samples_antenna, sto_integer, sto_fra
 
     assert(sto_integer >= 0);
 
-    % add integer sto
+    % add integer symbol time offset STO
     samples_antenna = [zeros(sto_integer, N_TX); samples_antenna; zeros(sto_integer, N_TX)];
 
-    % add fractional sto
+    % add fractional STO
     if sto_fractional ~= 0
 
         time_base = 0:size(samples_antenna, 1)-1;
         time_base = time_base';
 
-        % delayseq() requires radar toolbox, interp1 is default functionality
+        % The function delayseq() requires the radar toolbox, interp1 is default functionality.
+        % For both delayseq() and interp1(), oversampling should be at least 2, otherwise performance is worse.
         time_base_interpolation = time_base + sto_fractional;
         for i=1:1:N_TX
             samples_antenna(:, i) = interp1(time_base, samples_antenna(:, i), time_base_interpolation, 'spline', 'extrap');
         end
     end
 
-    % add cfo
+    % add carrier frequency offset (CFO)
     if cfo ~= 0
         time_base = 0:size(samples_antenna, 1)-1;
         time_base = time_base';

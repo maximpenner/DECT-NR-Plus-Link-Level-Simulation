@@ -27,7 +27,7 @@ function [antenna_streams_mapped_rev_derot, sto_fractional] = sto_fractional(ant
         ls_stf(:, i) = STF_values .* conj(transmit_streams_rev_i(STF_k_i_matlab,STF_l_matlab));
     end
 
-    %% extract the phase rotation between neighbouring subcarriers (this cancels out channel effects)
+    %% extract the phase rotation between neighboring subcarriers (this cancels out channel effects)
     ls_stf_s2s = ls_stf(1:end-1, :) .* conj(ls_stf(2:end, :));
 
     assert(mod(size(ls_stf_s2s, 1), 2) == 1);

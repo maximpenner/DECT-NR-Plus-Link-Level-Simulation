@@ -31,7 +31,7 @@ Advanced Topics
 
 ## Starting
 
-This repository can either be used locally as a standalone project, or installed system-wide as a Matlab toolbox/collection. When used as a toolbox/collection, name conflicts are avoided due to this project being organized in different namespaces whose names begin with the prefix **dectnrp_**.
+This repository can either be used locally as a standalone project, or installed system-wide as a Matlab toolbox/collection. When used as a toolbox/collection, name conflicts are avoided due to this project being organized in different namespaces whose names begin with the prefix *dectnrp*.
 
 ## Software Requirements
 
