@@ -19,23 +19,24 @@ function [] = beamforming()
     tx = dectnrp_tx.tx_t(tx_config);
 
     % create receiver
-    rx = dectnrp_rx.rx_t(tx);
-    rx.N_RX = 4;
+    rx_config = dectnrp_rx.rx_config_t();
+    rx_config.N_RX = 4;
+    rx = dectnrp_rx.rx_t(tx, rx_config);
 
     % create channel configuration
     channel_config                      = dectnrp_channel.channel_config_t();
     channel_config.verbosity            = 0;
     channel_config.type                 = 'Rayleigh';
-    channel_config.N_TX                 = tx.derived.tm_mode.N_TX;
-    channel_config.N_RX                 = rx.N_RX;
-    channel_config.spectrum_occupied    = tx.derived.n_spectrum_occupied/tx.tx_config.oversampling;
+    channel_config.N_TX                 = tx.tx_derived.tm_mode.N_TX;
+    channel_config.N_RX                 = rx.rx_config.N_RX;
+    channel_config.spectrum_occupied    = tx.tx_derived.n_spectrum_occupied/tx.tx_config.oversampling;
     channel_config.amp                  = 1.0;
     channel_config.sto_integer          = 0;
     channel_config.sto_fractional       = 0;
     channel_config.cfo                  = 0;
     channel_config.err_phase            = 0;
     channel_config.snr_db               = 20;
-    channel_config.r_samp_rate          = tx.derived.numerology.B_u_b_DFT*tx.tx_config.oversampling;
+    channel_config.r_samp_rate          = tx.tx_derived.numerology.B_u_b_DFT*tx.tx_config.oversampling;
     channel_config.r_max_doppler        = 1.946;
     channel_config.r_type               = 'TDL-iii';
     channel_config.r_DS_desired         = 0;

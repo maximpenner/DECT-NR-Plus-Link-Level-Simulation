@@ -9,10 +9,14 @@ function [] = single_packet()
     % The type tx_config_t contains the minimal set of variables that define the structure and size of a DECT NR+ packet.
     % It is initialized with sample values that can be overwritten.
     tx_config = dectnrp_tx.tx_config_t();
+
+    % The type rx_config_t contains the receiver configuration, which is not part of the technical specification.
+    % It is initialized with sample values that can be overwritten.
+    rx_config = dectnrp_rx.rx_config_t();
     
     % create transmitter, receiver and synchronization
     tx = dectnrp_tx.tx_t(tx_config);
-    rx = dectnrp_rx.rx_t(tx);
+    rx = dectnrp_rx.rx_t(tx, rx_config);
     sync = dectnrp_sync.sync_t(tx);
     
     % create channel

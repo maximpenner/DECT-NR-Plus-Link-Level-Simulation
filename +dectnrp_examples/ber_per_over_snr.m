@@ -68,8 +68,9 @@ function [] = ber_per_over_snr()
         tx = dectnrp_tx.tx_t(tx_config);
     
         % create rx
-        rx = dectnrp_rx.rx_t(tx);
-        rx.N_RX = 1;
+        rx_config = dectnrp_rx.rx_config_t();
+        rx_config.N_RX = 1;
+        rx = dectnrp_rx.rx_t(tx, rx_config);
         
         % PCC
         n_bits_PCC_sent_row = zeros(1, numel(snr_db));
@@ -122,15 +123,15 @@ function [] = ber_per_over_snr()
         n_packets_PDC_sent(cnt,:) = n_packets_PDC_sent_row;
         n_packets_PDC_error(cnt,:) = n_packets_PDC_error_row;
     
-        bps(cnt) = tx.derived.mcs.N_bps;
-        tbs(cnt) = tx.derived.N_TB_bits;
+        bps(cnt) = tx.tx_derived.mcs.N_bps;
+        tbs(cnt) = tx.tx_derived.N_TB_bits;
     end
     
     % save all variables to file
     save('results/var_all.mat');
 end
 
-function [result] = simulate_packets(tx_duplicate, rx_duplicate, snr_dB, n_packets_per_snr, harq_retransmissions)
+function [result] = simulate_packets(tx, rx, snr_dB, n_packets_per_snr, harq_retransmissions)
 
     n_bits_PCC_sent = 0;
     n_bits_PCC_error = 0;
@@ -144,16 +145,16 @@ function [result] = simulate_packets(tx_duplicate, rx_duplicate, snr_dB, n_packe
     channel_config                      = dectnrp_channel.channel_config_t();
     channel_config.verbosity            = 0;
     channel_config.type                 = 'Rician';
-    channel_config.N_TX                 = tx_duplicate.derived.tm_mode.N_TX;
-    channel_config.N_RX                 = rx_duplicate.N_RX;
-    channel_config.spectrum_occupied    = tx_duplicate.derived.n_spectrum_occupied/tx_duplicate.tx_config.oversampling;
+    channel_config.N_TX                 = tx.tx_derived.tm_mode.N_TX;
+    channel_config.N_RX                 = rx.rx_config.N_RX;
+    channel_config.spectrum_occupied    = tx.tx_derived.n_spectrum_occupied/tx.tx_config.oversampling;
     channel_config.amp                  = 1.0;
     channel_config.sto_integer          = 0;
     channel_config.sto_fractional       = 0;
     channel_config.cfo                  = 0;
     channel_config.err_phase            = 0;
     channel_config.snr_db               = snr_dB;
-    channel_config.r_samp_rate          = tx_duplicate.derived.numerology.B_u_b_DFT*tx_duplicate.tx_config.oversampling;
+    channel_config.r_samp_rate          = tx.tx_derived.numerology.B_u_b_DFT*tx.tx_config.oversampling;
     channel_config.r_max_doppler        = 1.946;
     channel_config.r_type               = 'TDL-v';
     channel_config.r_DS_desired         = 10^(-7.03 + 0.00*randn());
@@ -163,17 +164,17 @@ function [result] = simulate_packets(tx_duplicate, rx_duplicate, snr_dB, n_packe
     channel = dectnrp_channel.channel_t(channel_config);
 
     % adapt channel estimation weights to channel conditions
-    rx_duplicate.set_weights(1/10^(snr_dB/10), 20, 363e-9);
+    rx.set_derived_weights(1/10^(snr_dB/10), 20, 363e-9);
 
     % how many bits does tx need?
-    N_TB_bits = tx_duplicate.derived.N_TB_bits;
+    N_TB_bits = tx.tx_derived.N_TB_bits;
 
     for j=1:1:n_packets_per_snr
         
         % generate random PCC bits
-        if tx_duplicate.tx_config.PLCF_type == 1
+        if tx.tx_config.PLCF_type == 1
             PCC_bits = randi([0 1], 40, 1);
-        elseif tx_duplicate.tx_config.PLCF_type == 2
+        elseif tx.tx_config.PLCF_type == 2
             PCC_bits = randi([0 1], 80, 1);
         end
 
@@ -188,21 +189,21 @@ function [result] = simulate_packets(tx_duplicate, rx_duplicate, snr_dB, n_packe
 
             % there is a specific order for the redundancy version
             if mod(z,4) == 0
-                tx_duplicate.tx_config.rv = 0;
-                rx_duplicate.tx_config.rv = 0;
+                tx.tx_config.rv = 0;
+                rx.tx_config.rv = 0;
             elseif mod(z,4) == 1
-                tx_duplicate.tx_config.rv = 2;
-                rx_duplicate.tx_config.rv = 2;
+                tx.tx_config.rv = 2;
+                rx.tx_config.rv = 2;
             elseif mod(z,4) == 2
-                tx_duplicate.tx_config.rv = 3;
-                rx_duplicate.tx_config.rv = 3;
+                tx.tx_config.rv = 3;
+                rx.tx_config.rv = 3;
             elseif mod(z,4) == 3
-                tx_duplicate.tx_config.rv = 1;
-                rx_duplicate.tx_config.rv = 1;
+                tx.tx_config.rv = 1;
+                rx.tx_config.rv = 1;
             end
 
             % let tx create the packet
-            samples_antenna_tx = tx_duplicate.generate_packet(PCC_bits, PDC_bits);
+            samples_antenna_tx = tx.generate_packet(PCC_bits, PDC_bits);
 
             % pass samples through channel
             samples_antenna_rx = channel.pass_samples(samples_antenna_tx, 0);
@@ -211,23 +212,23 @@ function [result] = simulate_packets(tx_duplicate, rx_duplicate, snr_dB, n_packe
             channel.reset_random_Rayleigh_Rician();
 
             % now let rx decode the packet
-            rx_duplicate.demod_decode_packet(samples_antenna_rx);
+            rx.demod_decode_packet(samples_antenna_rx);
 
-            assert(numel(tx_duplicate.packet_data.pcc_enc_dbg.d) == 196);
+            assert(numel(tx.packet_data.pcc_enc_dbg.d) == 196);
             
             % measure the BER uncoded
-            n_bits_PCC_sent = n_bits_PCC_sent + numel(tx_duplicate.packet_data.pcc_enc_dbg.d);
-            n_bits_PCC_error = n_bits_PCC_error + rx_duplicate.get_pcc_bit_errors_uncoded(tx_duplicate);
-            n_bits_PDC_sent = n_bits_PDC_sent + numel(tx_duplicate.packet_data.pdc_enc_dbg.d);
-            n_bits_PDC_error = n_bits_PDC_error + rx_duplicate.get_pdc_bit_errors_uncoded(tx_duplicate);
+            n_bits_PCC_sent = n_bits_PCC_sent + numel(tx.packet_data.pcc_enc_dbg.d);
+            n_bits_PCC_error = n_bits_PCC_error + rx.get_pcc_bit_errors_uncoded(tx);
+            n_bits_PDC_sent = n_bits_PDC_sent + numel(tx.packet_data.pdc_enc_dbg.d);
+            n_bits_PDC_error = n_bits_PDC_error + rx.get_pdc_bit_errors_uncoded(tx);
             
             % we might be done
-            if rx_duplicate.are_plcf_bits_equal(tx_duplicate)
+            if rx.are_plcf_bits_equal(tx)
                 pcc_decoded_successfully = true;
             end                
 
             % we might be done
-            if rx_duplicate.are_tb_bits_equal(tx_duplicate)
+            if rx.are_tb_bits_equal(tx)
                 pdc_decoded_successfully = true;
             end
             
@@ -237,7 +238,7 @@ function [result] = simulate_packets(tx_duplicate, rx_duplicate, snr_dB, n_packe
             end
         end
 
-        rx_duplicate.clear_harq_buffers();
+        rx.clear_harq_buffers();
         
         % check if packet was decoded correctly, maybe there's still an error despite all the HARQ iterations
         if pcc_decoded_successfully == false

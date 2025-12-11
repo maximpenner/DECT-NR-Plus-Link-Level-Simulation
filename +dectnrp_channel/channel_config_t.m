@@ -42,20 +42,20 @@ classdef channel_config_t < matlab.mixin.Copyable
         function obj = set_example_values(obj, verbosity, type, tx, rx)
         
             % number of samples TX will generate
-            n_samples_antenna_tx = tx.derived.n_packet_samples * tx.tx_config.oversampling;
+            n_samples_antenna_tx = tx.tx_derived.n_packet_samples * tx.tx_config.oversampling;
         
             % RF channel parameters (see +lib_ch/obj.m) valid for all channel types.
             obj.verbosity           = verbosity;
             obj.type                = type;
         
-            obj.N_TX                = tx.derived.tm_mode.N_TX;
-            obj.N_RX                = rx.N_RX;
-            obj.spectrum_occupied   = tx.derived.n_spectrum_occupied/tx.tx_config.oversampling;
+            obj.N_TX                = tx.tx_derived.tm_mode.N_TX;
+            obj.N_RX                = rx.rx_config.N_RX;
+            obj.spectrum_occupied   = tx.tx_derived.n_spectrum_occupied/tx.tx_config.oversampling;
         
             obj.amp                 = 1.0;
             obj.sto_integer         = 123 + 2*n_samples_antenna_tx;
             obj.sto_fractional      = 0.36;
-            obj.cfo                 = 1.7*(1/(tx.derived.numerology.N_b_DFT*tx.tx_config.oversampling));
+            obj.cfo                 = 1.7*(1/(tx.tx_derived.numerology.N_b_DFT*tx.tx_config.oversampling));
             obj.err_phase           = deg2rad(123);
             obj.snr_db              = 30;
             
@@ -65,7 +65,7 @@ classdef channel_config_t < matlab.mixin.Copyable
         
             elseif strcmp(obj.type, 'Rayleigh') || strcmp(obj.type, 'Rician')
             
-                obj.r_samp_rate      = tx.derived.numerology.B_u_b_DFT*tx.tx_config.oversampling;
+                obj.r_samp_rate      = tx.tx_derived.numerology.B_u_b_DFT*tx.tx_config.oversampling;
                 obj.r_max_doppler    = 1.946;
         
                 if strcmp(obj.type, 'Rayleigh')

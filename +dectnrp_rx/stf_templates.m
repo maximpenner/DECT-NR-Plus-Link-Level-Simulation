@@ -48,7 +48,7 @@ function [STF_templates] = stf_templates(tx_config)
         %% save in time domain (oversampling included)
 
         % with oversampling STF becomes longer
-        n_STF_samples_os = tx_local.derived.n_STF_samples * tx_config_duplicate.oversampling;
+        n_STF_samples_os = tx_local.tx_derived.n_STF_samples * tx_config_duplicate.oversampling;
 
         % extract STF and save in cell
         STF_templates.time_domain(N_eff_TX_idx) = {samples_for_antenna(1:n_STF_samples_os, 1)};
@@ -56,8 +56,8 @@ function [STF_templates] = stf_templates(tx_config)
         %% save in frequency domain (oversampling excluded, is added in IFFT stage and dropped in FFT stage)
 
         % readability
-        N_b_DFT = tx_local.derived.numerology.N_b_DFT;
-        physical_resource_mapping_STF_cell = tx_local.derived.physical_resource_mapping_STF_cell;
+        N_b_DFT = tx_local.tx_derived.numerology.N_b_DFT;
+        physical_resource_mapping_STF_cell = tx_local.tx_derived.physical_resource_mapping_STF_cell;
 
         % indices
         k_i = cell2mat(physical_resource_mapping_STF_cell(1));

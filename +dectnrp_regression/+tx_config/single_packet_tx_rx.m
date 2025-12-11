@@ -30,7 +30,12 @@ end
 function [] = test_per_config(tx_config)
     % create transmitter
     tx = dectnrp_tx.tx_t(tx_config);
-    rx = dectnrp_rx.rx_t(tx);
+
+    % create receiver, switch to equal weights to decrease simulation time
+    rx_config = dectnrp_rx.rx_config_t();
+    rx_config.channel_estimation_config.type = 'equal';
+    rx = dectnrp_rx.rx_t(tx, rx_config);
+
     sync = dectnrp_sync.sync_t(tx);
     
     % create a DECT NR+ packet

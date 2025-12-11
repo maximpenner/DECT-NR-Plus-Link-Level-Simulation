@@ -1,19 +1,14 @@
 classdef rx_t < matlab.mixin.Copyable
     
     properties
-        % copied from tx
         tx_config;
-        derived;
+        tx_derived;
 
-        % number of antennas at the receiver
-        N_RX;
+        rx_config
 
-        % processing after the FFT in frequency domain
-        sto_fractional_config;          % based on STF and optionally DRS
-        sto_residual_config;            % based on DRS
-        cfo_residual_config;            % based on DRS
-        channel_estimation_config;      % based on optionally STF and DRS
-        equalization_detection_config;
+        % The following structure contains variables that are derived from the above set of variables in rx_config.
+        % Like the variables in rx_config, they are not part of the technical specification.
+        rx_derived;
 
         % intermediate results during packet decoding
         packet_data;
@@ -24,13 +19,17 @@ classdef rx_t < matlab.mixin.Copyable
     end
     
     methods
-        function obj = rx_t(tx)
+        function obj = rx_t(tx, rx_config)
             assert(isa(tx, "dectnrp_tx.tx_t"));
+            assert(isa(rx_config, "dectnrp_rx.rx_config_t"));
 
             obj.tx_config = tx.tx_config;
-            obj.derived = tx.derived;
-            
-            obj = obj.set_example_values();
+            obj.tx_derived = tx.tx_derived;
+
+            obj.rx_config = rx_config;
+            obj.set_derived_weights(obj.rx_config.channel_estimation_config.noise_estim, ...
+                                    obj.rx_config.channel_estimation_config.f_d_hertz, ...
+                                    obj.rx_config.channel_estimation_config.tau_rms_sec);
 
             obj.packet_data = [];
 
@@ -43,22 +42,25 @@ classdef rx_t < matlab.mixin.Copyable
             obj.HARQ_buf = [];
         end
 
-        % update channel estimation weights
-        function [] = set_weights(obj, noise_estim, f_d_hertz, tau_rms_sec)
+        % Update channel estimation weights. In a real receiver, a sets of conceivable channel estimation weights would be precalculated.
+        % An example can be found in https://github.com/maximpenner/DECT-NR-Plus-SDR.
+        % However, this is not feasible here as it would take too long. Instead, weights have to updated when either the packet configuration
+        % or the channel conditions change.
+        function [] = set_derived_weights(obj, noise_estim, f_d_hertz, tau_rms_sec)
             % The channel estimation filter interpolates between DRS pilots.
             % In this repository, we use precalculated static filters.
             % When calculating a static Wiener filter, the largest conceivable delay and Doppler spreads are assumed.
             % For noise, multiple filters are calculated for different SNRs and chosen depending on the instantaneous measured SNR.
-            obj.channel_estimation_config.weights = dectnrp_rx.channel_estimation.weights(obj.derived.numerology.N_b_DFT, ...
-                                                                                          obj.derived.N_PACKET_symb, ...
-                                                                                          obj.derived.numerology.N_b_CP, ...
-                                                                                          obj.channel_estimation_config.type, ...
-                                                                                          obj.channel_estimation_config.N_closest_DRS_pilots, ...
-                                                                                          obj.derived.physical_resource_mapping_DRS_cell, ...
-                                                                                          obj.derived.numerology.B_u_b_DFT, ...
-                                                                                          noise_estim, ...
-                                                                                          f_d_hertz, ...
-                                                                                          tau_rms_sec);
+            obj.rx_derived.weights = dectnrp_rx.channel_estimation.weights(obj.tx_derived.numerology.N_b_DFT, ...
+                                                                           obj.tx_derived.N_PACKET_symb, ...
+                                                                           obj.tx_derived.numerology.N_b_CP, ...
+                                                                           obj.rx_config.channel_estimation_config.type, ...
+                                                                           obj.rx_config.channel_estimation_config.N_closest_DRS_pilots, ...
+                                                                           obj.tx_derived.physical_resource_mapping_DRS_cell, ...
+                                                                           obj.tx_derived.numerology.B_u_b_DFT, ...
+                                                                           noise_estim, ...
+                                                                           f_d_hertz, ...
+                                                                           tau_rms_sec);
         end
         
         % We pass on the samples as they are received at the antennas and we try to extract the PCC and PDC bits.
@@ -76,30 +78,30 @@ classdef rx_t < matlab.mixin.Copyable
             oversampling    = obj.tx_config.oversampling;
             verbosity       = obj.tx_config.verbosity;
         
-            mode_0_to_11    = obj.derived.tm_mode.mode_0_to_11;
-            N_SS            = obj.derived.tm_mode.N_SS;
-            N_eff_TX        = obj.derived.tm_mode.N_eff_TX;
+            mode_0_to_11    = obj.tx_derived.tm_mode.mode_0_to_11;
+            N_SS            = obj.tx_derived.tm_mode.N_SS;
+            N_eff_TX        = obj.tx_derived.tm_mode.N_eff_TX;
 
-            mcs             = obj.derived.mcs;
+            mcs             = obj.tx_derived.mcs;
 
-            N_b_DFT         = obj.derived.numerology.N_b_DFT;            
-            N_b_CP          = obj.derived.numerology.N_b_CP;
+            N_b_DFT         = obj.tx_derived.numerology.N_b_DFT;            
+            N_b_CP          = obj.tx_derived.numerology.N_b_CP;
 
-            N_TB_bits       = obj.derived.N_TB_bits;
-            N_PACKET_symb   = obj.derived.N_PACKET_symb;
-            k_b_OCC         = obj.derived.k_b_OCC;
+            N_TB_bits       = obj.tx_derived.N_TB_bits;
+            N_PACKET_symb   = obj.tx_derived.N_PACKET_symb;
+            k_b_OCC         = obj.tx_derived.k_b_OCC;
 
-            physical_resource_mapping_PCC_cell = obj.derived.physical_resource_mapping_PCC_cell;
-            physical_resource_mapping_PDC_cell = obj.derived.physical_resource_mapping_PDC_cell;
-            physical_resource_mapping_STF_cell = obj.derived.physical_resource_mapping_STF_cell;
-            physical_resource_mapping_DRS_cell = obj.derived.physical_resource_mapping_DRS_cell;
+            physical_resource_mapping_PCC_cell = obj.tx_derived.physical_resource_mapping_PCC_cell;
+            physical_resource_mapping_PDC_cell = obj.tx_derived.physical_resource_mapping_PDC_cell;
+            physical_resource_mapping_STF_cell = obj.tx_derived.physical_resource_mapping_STF_cell;
+            physical_resource_mapping_DRS_cell = obj.tx_derived.physical_resource_mapping_DRS_cell;
 
             HARQ_buf_40_    = obj.HARQ_buf_40;
             HARQ_buf_80_    = obj.HARQ_buf_80;
             HARQ_buf_       = obj.HARQ_buf;
-            weights_        = obj.channel_estimation_config.weights;
+            weights_        = obj.rx_derived.weights;
 
-            assert(size(samples_antenna_rx, 1) == obj.derived.n_packet_samples*oversampling, "incorrect number of input samples");
+            assert(size(samples_antenna_rx, 1) == obj.tx_derived.n_packet_samples*oversampling, "incorrect number of input samples");
 
             %% revert cover sequence by reapplying it
             samples_antenna_rx = dectnrp_6_generic_procedures.STF_signal_cover_sequence(samples_antenna_rx, ...
@@ -113,7 +115,7 @@ classdef rx_t < matlab.mixin.Copyable
             [antenna_streams_mapped_rev, ~]= dectnrp_6_generic_procedures.ofdm_signal_generation_Cyclic_prefix_insertion_rev(samples_antenna_rx, ...
                                                                                                                              k_b_OCC, ...
                                                                                                                              N_PACKET_symb, ...
-                                                                                                                             obj.N_RX, ...
+                                                                                                                             obj.rx_config.N_RX, ...
                                                                                                                              N_eff_TX, ...
                                                                                                                              N_b_DFT, ...
                                                                                                                              u, ...
@@ -125,10 +127,10 @@ classdef rx_t < matlab.mixin.Copyable
             % This is known as the phase error gradient (PEG).
             % A residual STO may also be due to a Symbol Clock Offset (SCO).
             % ToDo: residual STO based on STF plus DRS
-            if ~isempty(obj.sto_fractional_config)
+            if ~isempty(obj.rx_config.sto_fractional_config)
                 [antenna_streams_mapped_rev, sto_fractional] = dectnrp_rx.sto_fractional(antenna_streams_mapped_rev, ...
                                                                                          physical_resource_mapping_STF_cell, ...
-                                                                                         obj.N_RX, ...
+                                                                                         obj.rx_config.N_RX, ...
                                                                                          oversampling);
 
                 % add to report
@@ -143,11 +145,11 @@ classdef rx_t < matlab.mixin.Copyable
             % This is known as the common phase error (CPE).
             % Is a real receiver, a CFO can also be caused by phase noise.
             % ToDo: residual CFO based on STF plus DRS
-            if ~isempty(obj.cfo_residual_config)
+            if ~isempty(obj.rx_config.cfo_residual_config)
                 antenna_streams_mapped_rev = dectnrp_rx.cfo_residual(antenna_streams_mapped_rev, ...
                                                                      physical_resource_mapping_DRS_cell, ...
                                                                      physical_resource_mapping_STF_cell, ...
-                                                                     obj.N_RX, ...
+                                                                     obj.rx_config.N_RX, ...
                                                                      N_eff_TX);
             end
 
@@ -165,33 +167,33 @@ classdef rx_t < matlab.mixin.Copyable
             ch_estim = dectnrp_rx.channel_estimation.estimate(antenna_streams_mapped_rev, ...
                                                               physical_resource_mapping_DRS_cell, ...
                                                               weights_, ...
-                                                              obj.N_RX, ...
+                                                              obj.rx_config.N_RX, ...
                                                               N_eff_TX);
             
             %% equalization and detection
             % With the known transmission mode and the channel estimate, we can now extract the binary data from the packet.
             % Equalization here is understood as the inversion of channel effects at the subcarriers, usually paired with a symbol demapper.
             % For MIMO detection with N_SS > 1 and symbol detection, equalization is not performed explicitly but is implicit part of the underlying algorithm.
-            if ~isempty(obj.equalization_detection_config)
+            if ~isempty(obj.rx_config.equalization_detection_config)
                 
                 % SISO
-                if N_eff_TX == 1 && obj.N_RX ==1
+                if N_eff_TX == 1 && obj.rx_config.N_RX ==1
 
                     x_PCC_rev = dectnrp_rx.equalization_detection.SISO_zf(antenna_streams_mapped_rev, ch_estim, physical_resource_mapping_PCC_cell);
                     x_PDC_rev = dectnrp_rx.equalization_detection.SISO_zf(antenna_streams_mapped_rev, ch_estim, physical_resource_mapping_PDC_cell);
 
                 % SIMO (Maximum Ratio Combining (MRC))
-                elseif N_eff_TX == 1 && obj.N_RX > 1
+                elseif N_eff_TX == 1 && obj.rx_config.N_RX > 1
 
-                    x_PCC_rev = dectnrp_rx.equalization_detection.SIMO_mrc(antenna_streams_mapped_rev, ch_estim, physical_resource_mapping_PCC_cell, obj.N_RX);
-                    x_PDC_rev = dectnrp_rx.equalization_detection.SIMO_mrc(antenna_streams_mapped_rev, ch_estim, physical_resource_mapping_PDC_cell, obj.N_RX);
+                    x_PCC_rev = dectnrp_rx.equalization_detection.SIMO_mrc(antenna_streams_mapped_rev, ch_estim, physical_resource_mapping_PCC_cell, obj.rx_config.N_RX);
+                    x_PDC_rev = dectnrp_rx.equalization_detection.SIMO_mrc(antenna_streams_mapped_rev, ch_estim, physical_resource_mapping_PDC_cell, obj.rx_config.N_RX);
 
                 % MISO (Alamouti) and MIMO (Alamouti + MRC and other modes)
                 else
                     % Transmit diversity precoding
                     if ismember(mode_0_to_11, [1,5,10]) == true
-                        x_PCC_rev = dectnrp_rx.equalization_detection.MISO_MIMO_alamouti_mrc(antenna_streams_mapped_rev, ch_estim, obj.N_RX, N_eff_TX, physical_resource_mapping_PCC_cell);
-                        x_PDC_rev = dectnrp_rx.equalization_detection.MISO_MIMO_alamouti_mrc(antenna_streams_mapped_rev, ch_estim, obj.N_RX, N_eff_TX, physical_resource_mapping_PDC_cell);
+                        x_PCC_rev = dectnrp_rx.equalization_detection.MISO_MIMO_alamouti_mrc(antenna_streams_mapped_rev, ch_estim, obj.rx_config.N_RX, N_eff_TX, physical_resource_mapping_PCC_cell);
+                        x_PDC_rev = dectnrp_rx.equalization_detection.MISO_MIMO_alamouti_mrc(antenna_streams_mapped_rev, ch_estim, obj.rx_config.N_RX, N_eff_TX, physical_resource_mapping_PDC_cell);
                     % MIMO modes with more than one spatial stream
                     else
                         error("MIMO modes with N_SS>1 not implemented yet.");
@@ -309,7 +311,7 @@ classdef rx_t < matlab.mixin.Copyable
         end
 
         function [] = plot_channel_estimation(obj)
-            assert(obj.N_RX == numel(obj.packet_data.ch_estim));
+            assert(obj.rx_config.N_RX == numel(obj.packet_data.ch_estim));
         
             % extract dimensions
             [N_subc, N_symb, N_TS] =  size(obj.packet_data.ch_estim{1});
@@ -317,7 +319,7 @@ classdef rx_t < matlab.mixin.Copyable
             figure()
             clf()
 
-            for i=1:obj.N_RX
+            for i=1:obj.rx_config.N_RX
         
                 % channel estimation of one antenna
                 ch_estim_single = obj.packet_data.ch_estim{i};
@@ -327,7 +329,7 @@ classdef rx_t < matlab.mixin.Copyable
                     % channel estimation of one transmit stream
                     ch_estim_single_TS = ch_estim_single(:,:,j);
         
-                    subplot(obj.N_RX, N_TS, (i-1)*N_TS + j);
+                    subplot(obj.rx_config.N_RX, N_TS, (i-1)*N_TS + j);
                     hold on;
         
                     % fill subplot
@@ -337,8 +339,8 @@ classdef rx_t < matlab.mixin.Copyable
                         ch_estim_single_TS_symb = ch_estim_single_TS(:, k);
         
                         % zero guards for nice plots
-                        ch_estim_single_TS_symb(1:obj.derived.numerology.n_guards_bottom) = 0;
-                        ch_estim_single_TS_symb(end-obj.derived.numerology.n_guards_top+1:end) = 0;
+                        ch_estim_single_TS_symb(1:obj.tx_derived.numerology.n_guards_bottom) = 0;
+                        ch_estim_single_TS_symb(end-obj.tx_derived.numerology.n_guards_top+1:end) = 0;
         
                         plot(-N_subc/2 : 1 : (N_subc/2-1), mag2db(abs(ch_estim_single_TS_symb)));
                     end
@@ -359,32 +361,6 @@ classdef rx_t < matlab.mixin.Copyable
             h = scatterplot(obj.packet_data.x_PDC_rev);
             title("RX Scatterplot");
             set(h, 'WindowStyle', 'Docked');
-        end
-    end
-
-    methods (Hidden = true)
-        function obj = set_example_values(obj)
-            obj.N_RX = 2;
-
-            % can be deactivated by leaving empty
-            obj.sto_fractional_config = 1;
-            obj.sto_residual_config = 1;
-            obj.cfo_residual_config = 1;
-
-            % Calculating Wiener filter coefficients takes very long for large packets.
-            % For basic interpolation and for testing purposes, type can be set to 'equal' to speed up the process.
-            obj.channel_estimation_config.type = 'Wiener';
-            obj.channel_estimation_config.N_closest_DRS_pilots = 8;
-            obj.channel_estimation_config.noise_estim = 1/10^(30/10);   % 30dB SNR
-            obj.channel_estimation_config.f_d_hertz = 20;               % 20Hz Doppler
-            obj.channel_estimation_config.tau_rms_sec = 363e-9;         % 363ns delay spread
-
-            obj.set_weights(obj.channel_estimation_config.noise_estim, ...
-                            obj.channel_estimation_config.f_d_hertz, ...
-                            obj.channel_estimation_config.tau_rms_sec);
-
-            % can be deactivated by leaving empty
-            obj.equalization_detection_config = 1;
         end
     end
 end

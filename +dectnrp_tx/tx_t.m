@@ -5,7 +5,7 @@ classdef tx_t < matlab.mixin.Copyable
 
         % The following structure contains variables that are derived from the above minimal set of variables in tx_config.
         % They are described in clause 4 and 5 of ETSI TS 103 636-3.
-        derived;
+        tx_derived;
 
         % intermediate results during packet encoding
         packet_data;
@@ -34,27 +34,27 @@ classdef tx_t < matlab.mixin.Copyable
             oversampling    = obj.tx_config.oversampling;
             verbosity       = obj.tx_config.verbosity;
 
-            mode_0_to_11    = obj.derived.tm_mode.mode_0_to_11;
-            N_SS            = obj.derived.tm_mode.N_SS;
-            CL              = obj.derived.tm_mode.CL;
-            N_TS            = obj.derived.tm_mode.N_TS;
-            N_TX            = obj.derived.tm_mode.N_TX;
-            N_eff_TX        = obj.derived.tm_mode.N_eff_TX;
+            mode_0_to_11    = obj.tx_derived.tm_mode.mode_0_to_11;
+            N_SS            = obj.tx_derived.tm_mode.N_SS;
+            CL              = obj.tx_derived.tm_mode.CL;
+            N_TS            = obj.tx_derived.tm_mode.N_TS;
+            N_TX            = obj.tx_derived.tm_mode.N_TX;
+            N_eff_TX        = obj.tx_derived.tm_mode.N_eff_TX;
 
-            mcs             = obj.derived.mcs;
+            mcs             = obj.tx_derived.mcs;
 
-            N_b_DFT         = obj.derived.numerology.N_b_DFT;
-            N_b_CP          = obj.derived.numerology.N_b_CP;
+            N_b_DFT         = obj.tx_derived.numerology.N_b_DFT;
+            N_b_CP          = obj.tx_derived.numerology.N_b_CP;
 
-            N_PACKET_symb   = obj.derived.N_PACKET_symb;
-            k_b_OCC         = obj.derived.k_b_OCC;
+            N_PACKET_symb   = obj.tx_derived.N_PACKET_symb;
+            k_b_OCC         = obj.tx_derived.k_b_OCC;
 
-            G               = obj.derived.G;
+            G               = obj.tx_derived.G;
 
-            physical_resource_mapping_PCC_cell = obj.derived.physical_resource_mapping_PCC_cell;
-            physical_resource_mapping_PDC_cell = obj.derived.physical_resource_mapping_PDC_cell;
-            physical_resource_mapping_STF_cell = obj.derived.physical_resource_mapping_STF_cell;
-            physical_resource_mapping_DRS_cell = obj.derived.physical_resource_mapping_DRS_cell;
+            physical_resource_mapping_PCC_cell = obj.tx_derived.physical_resource_mapping_PCC_cell;
+            physical_resource_mapping_PDC_cell = obj.tx_derived.physical_resource_mapping_PDC_cell;
+            physical_resource_mapping_STF_cell = obj.tx_derived.physical_resource_mapping_STF_cell;
+            physical_resource_mapping_DRS_cell = obj.tx_derived.physical_resource_mapping_DRS_cell;
 
             %% clause 7, based on the generic procedures of clause 6
 
@@ -174,27 +174,27 @@ classdef tx_t < matlab.mixin.Copyable
             end
             
             % transport block
-            tb_bits = randi([0 1], obj.derived.N_TB_bits, 1);
+            tb_bits = randi([0 1], obj.tx_derived.N_TB_bits, 1);
 
             samples_antenna_tx = obj.generate_packet(plcf_bits, tb_bits);
         end
 
         function [] = plot_resource_allocation_in_frequency_domain(obj)
             % create matrix with all components
-            [~, mat_STF_DRS_PCC_PDC_all_streams] = dectnrp_5_physical_layer_transmissions.matrix_STF_DRS_PCC_PDC(obj.derived.numerology.N_b_DFT, ...
-                                                                                                                 obj.derived.N_PACKET_symb, ...
-                                                                                                                 obj.derived.tm_mode.N_TS, ...
-                                                                                                                 obj.derived.tm_mode.N_SS, ...
-                                                                                                                 obj.derived.physical_resource_mapping_STF_cell, ...
-                                                                                                                 obj.derived.physical_resource_mapping_DRS_cell, ...
-                                                                                                                 obj.derived.physical_resource_mapping_PCC_cell, ...
-                                                                                                                 obj.derived.physical_resource_mapping_PDC_cell);
+            [~, mat_STF_DRS_PCC_PDC_all_streams] = dectnrp_5_physical_layer_transmissions.matrix_STF_DRS_PCC_PDC(obj.tx_derived.numerology.N_b_DFT, ...
+                                                                                                                 obj.tx_derived.N_PACKET_symb, ...
+                                                                                                                 obj.tx_derived.tm_mode.N_TS, ...
+                                                                                                                 obj.tx_derived.tm_mode.N_SS, ...
+                                                                                                                 obj.tx_derived.physical_resource_mapping_STF_cell, ...
+                                                                                                                 obj.tx_derived.physical_resource_mapping_DRS_cell, ...
+                                                                                                                 obj.tx_derived.physical_resource_mapping_PCC_cell, ...
+                                                                                                                 obj.tx_derived.physical_resource_mapping_PDC_cell);
         
             figure()
             clf()
             imagesc(mat_STF_DRS_PCC_PDC_all_streams);
             title('TX Resource Allocation in Frequency Domain');
-            set(gca, 'YTick', 0:2:obj.derived.numerology.N_b_DFT, 'YTickLabel', obj.derived.numerology.N_b_DFT/2-(0:2:obj.derived.numerology.N_b_DFT))
+            set(gca, 'YTick', 0:2:obj.tx_derived.numerology.N_b_DFT, 'YTickLabel', obj.tx_derived.numerology.N_b_DFT/2-(0:2:obj.tx_derived.numerology.N_b_DFT))
             ylabel('Subcarrier Index');
             xlabel('OFDM symbol index');
             axis image
@@ -288,56 +288,56 @@ classdef tx_t < matlab.mixin.Copyable
             G = tm_mode.N_SS*N_PDC_subc*mcs.N_bps;
         
             % save data in structure
-            obj.derived.tm_mode                             = tm_mode;
-            obj.derived.mcs                                 = mcs;
-            obj.derived.numerology                          = numerology;
-            obj.derived.T_frame                             = T_frame;
-            obj.derived.N_FRAME_slot                        = N_FRAME_slot;
-            obj.derived.T_slot                              = T_slot;
-            obj.derived.k_b_OCC                             = k_b_OCC;
-            obj.derived.N_PACKET_symb                       = N_PACKET_symb;
-            obj.derived.physical_resource_mapping_STF_cell  = physical_resource_mapping_STF_cell;
-            obj.derived.physical_resource_mapping_DRS_cell  = physical_resource_mapping_DRS_cell;
-            obj.derived.physical_resource_mapping_PCC_cell  = physical_resource_mapping_PCC_cell;
-            obj.derived.physical_resource_mapping_PDC_cell  = physical_resource_mapping_PDC_cell;
-            obj.derived.N_PDC_subc                          = N_PDC_subc;
-            obj.derived.N_TB_bits                           = N_TB_bits;
-            obj.derived.G                                   = G;
+            obj.tx_derived.tm_mode                             = tm_mode;
+            obj.tx_derived.mcs                                 = mcs;
+            obj.tx_derived.numerology                          = numerology;
+            obj.tx_derived.T_frame                             = T_frame;
+            obj.tx_derived.N_FRAME_slot                        = N_FRAME_slot;
+            obj.tx_derived.T_slot                              = T_slot;
+            obj.tx_derived.k_b_OCC                             = k_b_OCC;
+            obj.tx_derived.N_PACKET_symb                       = N_PACKET_symb;
+            obj.tx_derived.physical_resource_mapping_STF_cell  = physical_resource_mapping_STF_cell;
+            obj.tx_derived.physical_resource_mapping_DRS_cell  = physical_resource_mapping_DRS_cell;
+            obj.tx_derived.physical_resource_mapping_PCC_cell  = physical_resource_mapping_PCC_cell;
+            obj.tx_derived.physical_resource_mapping_PDC_cell  = physical_resource_mapping_PDC_cell;
+            obj.tx_derived.N_PDC_subc                          = N_PDC_subc;
+            obj.tx_derived.N_TB_bits                           = N_TB_bits;
+            obj.tx_derived.G                                   = G;
         
             % custom values, all starting with n_
         
             % what percentage of the spectrum do we occupy?
-            obj.derived.n_spectrum_occupied = numel(k_b_OCC)/numerology.N_b_DFT;
+            obj.tx_derived.n_spectrum_occupied = numel(k_b_OCC)/numerology.N_b_DFT;
         
             % how long is a symbol (CP included) in samples?
-            obj.derived.n_T_u_symb_samples = (obj.derived.numerology.N_b_DFT*9)/8;
+            obj.tx_derived.n_T_u_symb_samples = (obj.tx_derived.numerology.N_b_DFT*9)/8;
         
             % how long is a packet in samples? (Figures 5.1-1, 5.1-2, 5.1-3)
-            obj.derived.n_packet_samples = obj.derived.N_PACKET_symb*obj.derived.n_T_u_symb_samples;
+            obj.tx_derived.n_packet_samples = obj.tx_derived.N_PACKET_symb*obj.tx_derived.n_T_u_symb_samples;
         
             % How long are STF, DF and GI in samples? (Figures 5.1-1, 5.1-2, 5.1-3)
             % How often does the pattern in STF repeat? (Figures 5.1-1, 5.1-2, 5.1-3)
             switch obj.tx_config.u
                 case 1
-                    obj.derived.n_STF_samples = (obj.derived.n_T_u_symb_samples*14)/9;
-                    obj.derived.n_DF_samples = (obj.derived.N_PACKET_symb-2)*obj.derived.n_T_u_symb_samples;
-                    obj.derived.n_GI_samples = (obj.derived.n_T_u_symb_samples*4)/9;
-                    obj.derived.n_STF_pattern = 7;
+                    obj.tx_derived.n_STF_samples = (obj.tx_derived.n_T_u_symb_samples*14)/9;
+                    obj.tx_derived.n_DF_samples = (obj.tx_derived.N_PACKET_symb-2)*obj.tx_derived.n_T_u_symb_samples;
+                    obj.tx_derived.n_GI_samples = (obj.tx_derived.n_T_u_symb_samples*4)/9;
+                    obj.tx_derived.n_STF_pattern = 7;
                 case {2,4}
-                    obj.derived.n_STF_samples = obj.derived.n_T_u_symb_samples*2;
-                    obj.derived.n_DF_samples = (obj.derived.N_PACKET_symb-3)*obj.derived.n_T_u_symb_samples;
-                    obj.derived.n_GI_samples = obj.derived.n_T_u_symb_samples;
-                    obj.derived.n_STF_pattern = 9;
+                    obj.tx_derived.n_STF_samples = obj.tx_derived.n_T_u_symb_samples*2;
+                    obj.tx_derived.n_DF_samples = (obj.tx_derived.N_PACKET_symb-3)*obj.tx_derived.n_T_u_symb_samples;
+                    obj.tx_derived.n_GI_samples = obj.tx_derived.n_T_u_symb_samples;
+                    obj.tx_derived.n_STF_pattern = 9;
                 case 8
-                    obj.derived.n_STF_samples = obj.derived.n_T_u_symb_samples*2;
-                    obj.derived.n_DF_samples = (obj.derived.N_PACKET_symb-4)*obj.derived.n_T_u_symb_samples;
-                    obj.derived.n_GI_samples = obj.derived.n_T_u_symb_samples*2;
-                    obj.derived.n_STF_pattern = 9;                  
+                    obj.tx_derived.n_STF_samples = obj.tx_derived.n_T_u_symb_samples*2;
+                    obj.tx_derived.n_DF_samples = (obj.tx_derived.N_PACKET_symb-4)*obj.tx_derived.n_T_u_symb_samples;
+                    obj.tx_derived.n_GI_samples = obj.tx_derived.n_T_u_symb_samples*2;
+                    obj.tx_derived.n_STF_pattern = 9;                  
             end
         
-            assert(obj.derived.n_packet_samples == obj.derived.n_STF_samples + obj.derived.n_DF_samples + obj.derived.n_GI_samples);
+            assert(obj.tx_derived.n_packet_samples == obj.tx_derived.n_STF_samples + obj.tx_derived.n_DF_samples + obj.tx_derived.n_GI_samples);
         
-            obj.derived.n_pcc_bits_uncoded = 196;
+            obj.tx_derived.n_pcc_bits_uncoded = 196;
         end
     end
 end
