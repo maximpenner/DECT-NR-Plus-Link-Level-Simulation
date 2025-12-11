@@ -1,15 +1,23 @@
 function [] = run_all()
     clear all;
     close all;
-    clc;
+    rng('shuffle');
+    warning('on');
 
-    % tests typically taking < 1 min
+    % Tests typically taking < 1 min
     run_single("dectnrp_regression.channel.time_reproducibility");
-    run_single("dectnrp_regression.config.channel_coding_pdc");
+    run_single("dectnrp_regression.tx_config.channel_coding_pdc");
 
-    % tests typically taking >> 1 min
-    run_single("dectnrp_regression.config.single_packet_tx");
-    run_single("dectnrp_regression.config.single_packet_tx_rx");
+    % Tests typically taking >> 1 min
+    %
+    % The number of possible packet configurations is astronomical,
+    % which is why it is impossible to test them all. Instead, these
+    % tests can either cover a subset or just run endlessly. The 
+    % ultimate goal of these regression tests is to trigger an assert,
+    % an exception or decode a packet with insufficient SNR, which
+    % would indicate a bug in the code.
+    run_single("dectnrp_regression.tx_config.single_packet_tx_rx");
+    run_single("dectnrp_regression.tx_config.single_packet_tx");
 
     disp("All tests passed.");
 end

@@ -1,23 +1,22 @@
 function [] = single_packet()
+    % This script illustrates how to use this DECT-2020 New Radio link-level simulation environment.
+
     clear all;
     close all;
-    
-    % This script illustrates how to use this DECT-2020 New Radio link-level simulation environment.
-    
     rng('shuffle');
     warning('on');
 
-    % The type config_t contains the minimal set of variables that define the structure and size of a DECT NR+ packet.
+    % The type tx_config_t contains the minimal set of variables that define the structure and size of a DECT NR+ packet.
     % It is initialized with sample values that can be overwritten.
-    config = dectnrp_tx.config_t();
+    tx_config = dectnrp_tx.tx_config_t();
     
     % create transmitter, receiver and synchronization
-    tx = dectnrp_tx.tx_t(config);
+    tx = dectnrp_tx.tx_t(tx_config);
     rx = dectnrp_rx.rx_t(tx);
     sync = dectnrp_sync.sync_t(tx);
     
     % create channel
-    channel_config = dectnrp_channel.config_t(config.verbosity, 'Rayleigh', tx, rx);
+    channel_config = dectnrp_channel.channel_config_t(tx_config.verbosity, 'Rayleigh', tx, rx);
     channel = dectnrp_channel.channel_t(channel_config);
     
     % process one DECT NR+ packet

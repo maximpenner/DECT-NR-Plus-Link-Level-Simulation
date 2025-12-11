@@ -2,7 +2,7 @@ classdef sync_t < matlab.mixin.Copyable
     
     properties
         % copied from dectnrp_tx.tx_t()
-        config;
+        tx_config;
         derived;
 
         % STF templates in time and frequency domain
@@ -37,7 +37,7 @@ classdef sync_t < matlab.mixin.Copyable
         function obj = sync_t(tx)
             assert(isa(tx, "dectnrp_tx.tx_t"));
 
-            obj.config = tx.config;
+            obj.tx_config = tx.tx_config;
             obj.derived = tx.derived;
             
             obj = obj.set_universal_values();
@@ -50,7 +50,7 @@ classdef sync_t < matlab.mixin.Copyable
         
             [n_samples_antenna, N_RX] = size(samples_antenna_ch);
 
-            assert(n_samples_antenna > obj.derived.n_packet_samples*obj.config.oversampling, ...
+            assert(n_samples_antenna > obj.derived.n_packet_samples*obj.tx_config.oversampling, ...
                    "for synchonization more samples than the packet size must be provided");
 
             %% low-pass filtering 
@@ -58,8 +58,8 @@ classdef sync_t < matlab.mixin.Copyable
             % If oversampling is used, we have to remove out-of-band noise, otherwise synchronization in time domain is impaired.
             % This low pass filtered signal is only used for synchronization algorithms.
             % The signal fed to the FFT still contains the out-of-band noise, since the FFT itself is an LPF.
-            if obj.lpf_enable && obj.config.oversampling > 1
-                samples_antenna_ch_lpf = dectnrp_sync.lpf(samples_antenna_ch, obj.config.oversampling);
+            if obj.lpf_enable && obj.tx_config.oversampling > 1
+                samples_antenna_ch_lpf = dectnrp_sync.lpf(samples_antenna_ch, obj.tx_config.oversampling);
             else
                 samples_antenna_ch_lpf = samples_antenna_ch;
             end
@@ -89,7 +89,7 @@ classdef sync_t < matlab.mixin.Copyable
         
             %% search for the coarse peak starting from the coarse metric threshold crossing
         
-            coarse_peak_idx = dectnrp_sync.coarse_peak_search(obj.config.verbosity, ...
+            coarse_peak_idx = dectnrp_sync.coarse_peak_search(obj.tx_config.verbosity, ...
                                                               obj.coarse_detection_power_threshold, ...
                                                               obj.coarse_detection_threshold, ...
                                                               obj.coarse_peak_search_length, ...
@@ -113,7 +113,7 @@ classdef sync_t < matlab.mixin.Copyable
             if obj.cfo_fractional_enable == true
                 [samples_antenna_stf_at_coarse_peak_cfo_fractional, cfo_fractional_report] = dectnrp_sync.cfo_fractional(samples_antenna_stf_at_coarse_peak, ...
                                                                                                                          obj.n_samples_STF_b_os, ...
-                                                                                                                         obj.config.u);
+                                                                                                                         obj.tx_config.u);
             else
                 samples_antenna_stf_at_coarse_peak_cfo_fractional = samples_antenna_stf_at_coarse_peak;
                 cfo_fractional_report = 0;
@@ -123,7 +123,7 @@ classdef sync_t < matlab.mixin.Copyable
         
             if obj.cfo_integer_enable == true
                 cfo_integer_report = dectnrp_sync.cfo_integer(obj.cfo_integer_candidate_values, ...
-                                                              obj.config.oversampling, ...
+                                                              obj.tx_config.oversampling, ...
                                                               obj.derived.numerology.N_b_DFT, ...
                                                               obj.n_samples_STF_cp_only_b_os, ...
                                                               obj.stf_templates.freq_domain, ...
@@ -135,8 +135,8 @@ classdef sync_t < matlab.mixin.Copyable
         
             %% around the coarse peak, perform a cross-correlation with the STF templates
         
-            [N_eff_TX_report, max_idx_fine] = dectnrp_sync.fine_peak_search(obj.config.verbosity, ...
-                                                                            obj.config.oversampling, ...
+            [N_eff_TX_report, max_idx_fine] = dectnrp_sync.fine_peak_search(obj.tx_config.verbosity, ...
+                                                                            obj.tx_config.oversampling, ...
                                                                             obj.derived.numerology.N_b_DFT, ...
                                                                             coarse_peak_idx, ...
                                                                             cfo_fractional_report, ...
@@ -154,7 +154,7 @@ classdef sync_t < matlab.mixin.Copyable
         
             %% extract the packet starting at the fine peak and correct the CFO for the entire packet
 
-            n_packet_samples_os = obj.derived.n_packet_samples*obj.config.oversampling;
+            n_packet_samples_os = obj.derived.n_packet_samples*obj.tx_config.oversampling;
         
             time_base = 0:1:(n_packet_samples_os - 1);
             time_base = time_base';
@@ -173,11 +173,11 @@ classdef sync_t < matlab.mixin.Copyable
         
             % derotate samples of each antenna
             for i=1:1:N_RX
-                total_cfo = cfo_fractional_report + cfo_integer_report * 1/(obj.derived.numerology.N_b_DFT*obj.config.oversampling);
+                total_cfo = cfo_fractional_report + cfo_integer_report * 1/(obj.derived.numerology.N_b_DFT*obj.tx_config.oversampling);
                 samples_antenna_rx(:,i) = samples_antenna_ch(max_idx_fine : max_idx_fine_plus_packet, i) .* exp(1i*2*pi*(-total_cfo)*time_base);
             end
 
-            assert(size(samples_antenna_rx, 1) == obj.derived.n_packet_samples*obj.config.oversampling);
+            assert(size(samples_antenna_rx, 1) == obj.derived.n_packet_samples*obj.tx_config.oversampling);
         
             %% create output report
             obj.sync_report.max_idx_coarse  = max_idx_coarse;
@@ -191,7 +191,7 @@ classdef sync_t < matlab.mixin.Copyable
     methods (Hidden = true)
         function obj = set_universal_values(obj)
             % what is the length of the STF and how many pattern does it contain?
-            switch obj.config.u
+            switch obj.tx_config.u
                 case 1
                     n_samples_STF = (64+8) * 14/9;
                     n_pattern = 7;
@@ -203,12 +203,12 @@ classdef sync_t < matlab.mixin.Copyable
             end
         
             % what is the actual size of the STF with oversampling?
-            obj.n_samples_STF_b_os = n_samples_STF*obj.config.b*obj.config.oversampling;
-            obj.n_samples_STF_cp_only_b_os = obj.n_samples_STF_b_os - 64*obj.config.b*obj.config.oversampling;
+            obj.n_samples_STF_b_os = n_samples_STF*obj.tx_config.b*obj.tx_config.oversampling;
+            obj.n_samples_STF_cp_only_b_os = obj.n_samples_STF_b_os - 64*obj.tx_config.b*obj.tx_config.oversampling;
 
             assert(mod(obj.n_samples_STF_b_os, obj.derived.n_STF_pattern) == 0);
 
-            obj.stf_templates = dectnrp_rx.stf_templates(obj.config);
+            obj.stf_templates = dectnrp_rx.stf_templates(obj.tx_config);
 
             %% low-pass filtering to remove out-of-band noise
             
@@ -227,7 +227,7 @@ classdef sync_t < matlab.mixin.Copyable
             obj.coarse_detection_power_threshold = 0.001;
         
             % largest step is 16*b*oversampling, i.e. one STF pattern
-            obj.coarse_detection_step = 8*obj.config.b*obj.config.oversampling;    
+            obj.coarse_detection_step = 8*obj.tx_config.b*obj.tx_config.oversampling;    
         
             % coarse metric is normalized between 0 and 1.0, threshold should be low enough to detect at low SNR, but not too low to avoid false alarms due to noise
             obj.coarse_detection_threshold = 0.15;
@@ -247,11 +247,11 @@ classdef sync_t < matlab.mixin.Copyable
             obj.coarse_peak_threshold = 0.15;
         
             % additional smoothing of the coarse metric
-            obj.coarse_peak_movmean = [3*obj.config.b*obj.config.oversampling 3*obj.config.b*obj.config.oversampling];
+            obj.coarse_peak_movmean = [3*obj.tx_config.b*obj.tx_config.oversampling 3*obj.tx_config.b*obj.tx_config.oversampling];
         
             %% STO fine peak search around the coarse peak, based on cross-correlation with precalculated STF templates
             
-            obj.fine_peak_search_area = 24*obj.config.b*obj.config.oversampling;
+            obj.fine_peak_search_area = 24*obj.tx_config.b*obj.tx_config.oversampling;
         
             %% CFO Fractional
         
@@ -264,7 +264,7 @@ classdef sync_t < matlab.mixin.Copyable
             obj.cfo_integer_enable = true;
             
             % get the maximum physical deviation in multiples of the subcarrier spacing in use
-            obj.cfo_integer_max_deviation_subcarrier_spacings = dectnrp_sync.cfo_max(obj.config.u);
+            obj.cfo_integer_max_deviation_subcarrier_spacings = dectnrp_sync.cfo_max(obj.tx_config.u);
             
             % saw tooth of fractional CFO correction
             if obj.cfo_integer_max_deviation_subcarrier_spacings < 2

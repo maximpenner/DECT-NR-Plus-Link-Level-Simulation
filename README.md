@@ -50,7 +50,7 @@ The Matlab Communications Toolbox is required for wireless channel simulation, t
     │   ├─ +advanced                              examples demonstrating advanced features
     ├─ +dectnrp_regression/                       regression testing
     │   ├─ +channel                               regression testing over channel
-    │   ├─ +config                                regression testing over config_t in dectnrp_tx/
+    │   ├─ +tx_config                             regression testing over tx_config_t in +dectnrp_tx/
     ├─ +dectnrp_rx/                               receiver
     │   ├─ +channel_estimation                    channel estimation based on STF and DRS
     │   ├─ +equalization_detection                symbol equalization/detection

@@ -5,7 +5,7 @@ function [success] = time_reproducibility()
     for i=1:1:100
 
         % create channel configuration
-        channel_config                      = dectnrp_channel.config_t();
+        channel_config                      = dectnrp_channel.channel_config_t();
         channel_config.verbosity            = 0;
         channel_config.type                 = 'Rayleigh';
         channel_config.N_TX                 = randi([1 8]);

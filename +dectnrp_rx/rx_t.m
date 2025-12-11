@@ -2,7 +2,7 @@ classdef rx_t < matlab.mixin.Copyable
     
     properties
         % copied from tx
-        config;
+        tx_config;
         derived;
 
         % number of antennas at the receiver
@@ -27,7 +27,7 @@ classdef rx_t < matlab.mixin.Copyable
         function obj = rx_t(tx)
             assert(isa(tx, "dectnrp_tx.tx_t"));
 
-            obj.config = tx.config;
+            obj.tx_config = tx.tx_config;
             obj.derived = tx.derived;
             
             obj = obj.set_example_values();
@@ -67,14 +67,14 @@ classdef rx_t < matlab.mixin.Copyable
             
             %% for the purpose of readability, extract all variables that are necessary at this stage
 
-            u               = obj.config.u;
-            b               = obj.config.b;
-            Z               = obj.config.Z;
-            network_id      = obj.config.network_id;
-            PLCF_type       = obj.config.PLCF_type;
-            rv              = obj.config.rv;
-            oversampling    = obj.config.oversampling;
-            verbosity       = obj.config.verbosity;
+            u               = obj.tx_config.u;
+            b               = obj.tx_config.b;
+            Z               = obj.tx_config.Z;
+            network_id      = obj.tx_config.network_id;
+            PLCF_type       = obj.tx_config.PLCF_type;
+            rv              = obj.tx_config.rv;
+            oversampling    = obj.tx_config.oversampling;
+            verbosity       = obj.tx_config.verbosity;
         
             mode_0_to_11    = obj.derived.tm_mode.mode_0_to_11;
             N_SS            = obj.derived.tm_mode.N_SS;
@@ -211,7 +211,7 @@ classdef rx_t < matlab.mixin.Copyable
              CL_report, ...
              BF_report, ...
              pcc_dec_dbg] =  dectnrp_7_transmission_encoding.PCC_decoding(x_PCC_rev, ...
-                                                                          obj.config.PLCF_type, ...
+                                                                          obj.tx_config.PLCF_type, ...
                                                                           HARQ_buf_40_, ...
                                                                           HARQ_buf_80_);
             [tb_bits_recovered, PDC_HARQ_buf_report, pdc_dec_dbg] = dectnrp_7_transmission_encoding.PDC_decoding(x_PDC_rev, ...

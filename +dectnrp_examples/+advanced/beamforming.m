@@ -1,37 +1,41 @@
 function [] = beamforming()
+    clear all;
+    close all;
+    rng('shuffle');
+    warning('on');
 
     % create packet configuration with four TX antennas, single spatial and single transmit stream
-    config = dectnrp_tx.config_t();
-    config.tm_mode_0_to_11 = 7;
-    config.mcs_index = 1;
-    config.verbosity = 0;
+    tx_config = dectnrp_tx.tx_config_t();
+    tx_config.tm_mode_0_to_11 = 7;
+    tx_config.mcs_index = 1;
+    tx_config.verbosity = 0;
 
     % 27 different beamforming matrices for mode 7
-    tm_mode = dectnrp_7_transmission_encoding.transmission_modes(config.tm_mode_0_to_11);
+    tm_mode = dectnrp_7_transmission_encoding.transmission_modes(tx_config.tm_mode_0_to_11);
     [~, codebook_index_max] = dectnrp_6_generic_procedures.Beamforming_W(tm_mode.N_TS, tm_mode.N_TX, 0);
     codebook_index_vec = 0:codebook_index_max;
     
     % create transmitter
-    tx = dectnrp_tx.tx_t(config);
+    tx = dectnrp_tx.tx_t(tx_config);
 
     % create receiver
     rx = dectnrp_rx.rx_t(tx);
     rx.N_RX = 4;
 
     % create channel configuration
-    channel_config                      = dectnrp_channel.config_t();
+    channel_config                      = dectnrp_channel.channel_config_t();
     channel_config.verbosity            = 0;
     channel_config.type                 = 'Rayleigh';
     channel_config.N_TX                 = tx.derived.tm_mode.N_TX;
     channel_config.N_RX                 = rx.N_RX;
-    channel_config.spectrum_occupied    = tx.derived.n_spectrum_occupied/tx.config.oversampling;
+    channel_config.spectrum_occupied    = tx.derived.n_spectrum_occupied/tx.tx_config.oversampling;
     channel_config.amp                  = 1.0;
     channel_config.sto_integer          = 0;
     channel_config.sto_fractional       = 0;
     channel_config.cfo                  = 0;
     channel_config.err_phase            = 0;
     channel_config.snr_db               = 20;
-    channel_config.r_samp_rate          = tx.derived.numerology.B_u_b_DFT*tx.config.oversampling;
+    channel_config.r_samp_rate          = tx.derived.numerology.B_u_b_DFT*tx.tx_config.oversampling;
     channel_config.r_max_doppler        = 1.946;
     channel_config.r_type               = 'TDL-iii';
     channel_config.r_DS_desired         = 0;
@@ -70,7 +74,7 @@ function [sinr] = run_single_codebook_index(tx, channel, rx, codebook_index_vec)
     sinr = zeros(numel(codebook_index_vec), 1);
 
     % create a packet without beamforming
-    tx.config.codebook_index = 0;
+    tx.tx_config.codebook_index = 0;
     samples_antenna_tx = tx.generate_random_packet();
 
     % simulate packet without beamforming until it was decoded successfully
@@ -98,7 +102,7 @@ function [sinr] = run_single_codebook_index(tx, channel, rx, codebook_index_vec)
     for i = 2:numel(codebook_index_vec)
         
         % create same packet with beamforming
-        tx.config.codebook_index = codebook_index_vec(i);
+        tx.tx_config.codebook_index = codebook_index_vec(i);
         samples_antenna_tx = tx.generate_packet(tx.packet_data.plcf_bits, tx.packet_data.tb_bits);
         
         % pass beamformed signal through the exact same channel at the exact same time

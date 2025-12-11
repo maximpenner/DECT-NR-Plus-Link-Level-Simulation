@@ -1,13 +1,15 @@
 function [] = ber_per_over_snr_plot()
     clear all;
     close all;
+    rng('shuffle');
+    warning('on');
     
     load('results/var_all.mat');
     
     % PCC
     ber = n_bits_PCC_error./n_bits_PCC_sent;
     per = n_packets_PCC_error./n_packets_PCC_sent;
-    ber_per_over_snr_plot_for_one_mcs("PCC", mcs, snr_db, ones(size(bps))*2, ones(size(tbs))*tx.config.PLCF_type*40, ber, per);
+    ber_per_over_snr_plot_for_one_mcs("PCC", mcs, snr_db, ones(size(bps))*2, ones(size(tbs))*tx.tx_config.PLCF_type*40, ber, per);
     
     % PDC
     ber = n_bits_PDC_error./n_bits_PDC_sent;

@@ -21,24 +21,24 @@ function [] = parfor_harness(range, func)
                                                     for inner_repetition = 1:range.inner_repetitions
     
                                                         % configurations are initialized with exemplary values
-                                                        config = dectnrp_tx.config_t();
+                                                        tx_config = dectnrp_tx.tx_config_t();
     
                                                         % overwrite
-                                                        config.u = u;
-                                                        config.b = b;
-                                                        config.PacketLengthType = PacketLengthType;
-                                                        config.PacketLength = PacketLength;
-                                                        config.tm_mode_0_to_11 = tm_mode_0_to_11;
-                                                        config.mcs_index = mcs_index;
-                                                        config.Z = Z;
-                                                        config.oversampling = oversampling;
-                                                        config.codebook_index = codebook_index;
-                                                        config.PLCF_type = PLCF_type;
-                                                        config.rv = rv;
-                                                        config.network_id = de2bi(network_id,32,'left-msb');
-                                                        config.verbosity = range.verbosity;
+                                                        tx_config.u = u;
+                                                        tx_config.b = b;
+                                                        tx_config.PacketLengthType = PacketLengthType;
+                                                        tx_config.PacketLength = PacketLength;
+                                                        tx_config.tm_mode_0_to_11 = tm_mode_0_to_11;
+                                                        tx_config.mcs_index = mcs_index;
+                                                        tx_config.Z = Z;
+                                                        tx_config.oversampling = oversampling;
+                                                        tx_config.codebook_index = codebook_index;
+                                                        tx_config.PLCF_type = PLCF_type;
+                                                        tx_config.rv = rv;
+                                                        tx_config.network_id = de2bi(network_id,32,'left-msb');
+                                                        tx_config.verbosity = range.verbosity;
                             
-                                                        func(config);
+                                                        func(tx_config);
                                                     end
                                                 end
                                             end

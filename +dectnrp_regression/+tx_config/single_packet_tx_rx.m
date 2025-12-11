@@ -16,7 +16,7 @@ function [success] = single_packet_tx_rx()
     range.inner_repetitions     = 1;
 
     try
-        dectnrp_regression.config.parfor_harness(range, @test_per_config);
+        dectnrp_regression.tx_config.parfor_harness(range, @test_per_config);
     catch ME
         s = dbstack;
         fprintf("Test %s, error message: %s\n\n", s(1).name, ME.message);
@@ -27,9 +27,9 @@ function [success] = single_packet_tx_rx()
     success = true;
 end
 
-function [] = test_per_config(config)
+function [] = test_per_config(tx_config)
     % create transmitter
-    tx = dectnrp_tx.tx_t(config);
+    tx = dectnrp_tx.tx_t(tx_config);
     rx = dectnrp_rx.rx_t(tx);
     sync = dectnrp_sync.sync_t(tx);
     
@@ -37,11 +37,11 @@ function [] = test_per_config(config)
     tx.generate_random_packet();
     
     % create channel configuration
-    channel_config = dectnrp_channel.config_t(config.verbosity, 'AWGN', tx, rx);
+    channel_config = dectnrp_channel.channel_config_t(tx_config.verbosity, 'AWGN', tx, rx);
 
     % change channel configuration
     channel_config.snr_db = 50;
-    if config.oversampling == 1
+    if tx_config.oversampling == 1
         channel_config.sto_fractional = 0;
     end
 

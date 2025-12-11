@@ -16,7 +16,7 @@ function [success] = single_packet_tx()
     range.inner_repetitions     = 1;
 
     try
-        dectnrp_regression.config.parfor_harness(range, @test_per_config);
+        dectnrp_regression.tx_config.parfor_harness(range, @test_per_config);
     catch ME
         s = dbstack;
         fprintf("Test %s, error message: %s\n\n", s(1).name, ME.message);
@@ -27,7 +27,7 @@ function [success] = single_packet_tx()
     success = true;
 end
 
-function [] = test_per_config(config)
-    tx = dectnrp_tx.tx_t(config);
+function [] = test_per_config(tx_config)
+    tx = dectnrp_tx.tx_t(tx_config);
     tx.generate_random_packet();
 end

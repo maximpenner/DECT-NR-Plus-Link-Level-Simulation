@@ -1,9 +1,9 @@
 classdef tx_t < matlab.mixin.Copyable
     
     properties
-        config;
+        tx_config;
 
-        % The following structure contains variables that are derived from the above minimal set of variables in config.
+        % The following structure contains variables that are derived from the above minimal set of variables in tx_config.
         % They are described in clause 4 and 5 of ETSI TS 103 636-3.
         derived;
 
@@ -12,10 +12,10 @@ classdef tx_t < matlab.mixin.Copyable
     end
     
     methods
-        function obj = tx_t(config)
-            assert(isa(config, "dectnrp_tx.config_t"));
+        function obj = tx_t(tx_config)
+            assert(isa(tx_config, "dectnrp_tx.tx_config_t"));
             
-            obj.config = config;
+            obj.tx_config = tx_config;
             obj.set_derived();
             obj.packet_data = [];
         end
@@ -24,15 +24,15 @@ classdef tx_t < matlab.mixin.Copyable
             
             %% for the purpose of readability, read all variables that are necessary at this stage
 
-            u               = obj.config.u;
-            b               = obj.config.b;
-            Z               = obj.config.Z;
-            codebook_index  = obj.config.codebook_index;
-            network_id      = obj.config.network_id;
-            PLCF_type       = obj.config.PLCF_type;
-            rv              = obj.config.rv;
-            oversampling    = obj.config.oversampling;
-            verbosity       = obj.config.verbosity;
+            u               = obj.tx_config.u;
+            b               = obj.tx_config.b;
+            Z               = obj.tx_config.Z;
+            codebook_index  = obj.tx_config.codebook_index;
+            network_id      = obj.tx_config.network_id;
+            PLCF_type       = obj.tx_config.PLCF_type;
+            rv              = obj.tx_config.rv;
+            oversampling    = obj.tx_config.oversampling;
+            verbosity       = obj.tx_config.verbosity;
 
             mode_0_to_11    = obj.derived.tm_mode.mode_0_to_11;
             N_SS            = obj.derived.tm_mode.N_SS;
@@ -165,9 +165,9 @@ classdef tx_t < matlab.mixin.Copyable
         function [samples_antenna_tx] = generate_random_packet(obj)
 
             % PLCF
-            if obj.config.PLCF_type == 1
+            if obj.tx_config.PLCF_type == 1
                 plcf_bits = randi([0 1], 40, 1);
-            elseif obj.config.PLCF_type == 2
+            elseif obj.tx_config.PLCF_type == 2
                 plcf_bits = randi([0 1], 80, 1);
             else
                 error("undefined PLCF type");
@@ -227,13 +227,13 @@ classdef tx_t < matlab.mixin.Copyable
         % This method is called in the constructor. It basically does all the calculations of clause 4 and 5.
         function [] = set_derived(obj)
             % clause 7.2
-            tm_mode = dectnrp_7_transmission_encoding.transmission_modes(obj.config.tm_mode_0_to_11);
+            tm_mode = dectnrp_7_transmission_encoding.transmission_modes(obj.tx_config.tm_mode_0_to_11);
         
             % Annex A
-            mcs = dectnrp_Annex_A.modulation_and_coding_scheme(obj.config.mcs_index);
+            mcs = dectnrp_Annex_A.modulation_and_coding_scheme(obj.tx_config.mcs_index);
         
             % clause 4.3
-            numerology = dectnrp_4_physical_layer_principles.numerologies(obj.config.u, obj.config.b);
+            numerology = dectnrp_4_physical_layer_principles.numerologies(obj.tx_config.u, obj.tx_config.b);
         
             % clause 4.4
             [T_frame, N_FRAME_slot, T_slot] = dectnrp_4_physical_layer_principles.frame_structure();
@@ -243,16 +243,16 @@ classdef tx_t < matlab.mixin.Copyable
         
             % clause 5.1
             N_PACKET_symb = dectnrp_5_physical_layer_transmissions.Transmission_packet_structure(numerology, ...
-                                                                                                 obj.config.PacketLengthType, ...
-                                                                                                 obj.config.PacketLength, ...
+                                                                                                 obj.tx_config.PacketLengthType, ...
+                                                                                                 obj.tx_config.PacketLength, ...
                                                                                                  tm_mode.N_eff_TX, ...
-                                                                                                 obj.config.u);
+                                                                                                 obj.tx_config.u);
             
             % clause 5.2.2
             [physical_resource_mapping_STF_cell] = dectnrp_5_physical_layer_transmissions.STF(numerology, ...
                                                                                               k_b_OCC, ...
                                                                                               tm_mode.N_eff_TX, ...
-                                                                                              obj.config.b);
+                                                                                              obj.tx_config.b);
         
             % clause 5.2.3
             [physical_resource_mapping_DRS_cell] = dectnrp_5_physical_layer_transmissions.DRS(numerology, ...
@@ -260,7 +260,7 @@ classdef tx_t < matlab.mixin.Copyable
                                                                                               tm_mode.N_TS, ...
                                                                                               tm_mode.N_eff_TX, ...
                                                                                               N_PACKET_symb, ...
-                                                                                              obj.config.b);
+                                                                                              obj.tx_config.b);
         
             % clause 5.2.4
             [physical_resource_mapping_PCC_cell] = dectnrp_5_physical_layer_transmissions.PCC(numerology, ...
@@ -271,7 +271,7 @@ classdef tx_t < matlab.mixin.Copyable
                                                                                               physical_resource_mapping_DRS_cell);
         
             % clause 5.2.5
-            [physical_resource_mapping_PDC_cell, N_PDC_subc] = dectnrp_5_physical_layer_transmissions.PDC(obj.config.u, ...
+            [physical_resource_mapping_PDC_cell, N_PDC_subc] = dectnrp_5_physical_layer_transmissions.PDC(obj.tx_config.u, ...
                                                                                                           numerology, ...
                                                                                                           k_b_OCC, ...
                                                                                                           N_PACKET_symb, ...
@@ -282,7 +282,7 @@ classdef tx_t < matlab.mixin.Copyable
                                                                                                           physical_resource_mapping_PCC_cell);
         
             % clause 5.3
-            N_TB_bits = dectnrp_5_physical_layer_transmissions.Transport_block_size(tm_mode, mcs, N_PDC_subc, obj.config.Z);
+            N_TB_bits = dectnrp_5_physical_layer_transmissions.Transport_block_size(tm_mode, mcs, N_PDC_subc, obj.tx_config.Z);
 
             % clause 7.6.6
             G = tm_mode.N_SS*N_PDC_subc*mcs.N_bps;
@@ -317,7 +317,7 @@ classdef tx_t < matlab.mixin.Copyable
         
             % How long are STF, DF and GI in samples? (Figures 5.1-1, 5.1-2, 5.1-3)
             % How often does the pattern in STF repeat? (Figures 5.1-1, 5.1-2, 5.1-3)
-            switch obj.config.u
+            switch obj.tx_config.u
                 case 1
                     obj.derived.n_STF_samples = (obj.derived.n_T_u_symb_samples*14)/9;
                     obj.derived.n_DF_samples = (obj.derived.N_PACKET_symb-2)*obj.derived.n_T_u_symb_samples;

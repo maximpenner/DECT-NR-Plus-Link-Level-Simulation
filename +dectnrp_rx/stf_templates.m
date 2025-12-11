@@ -1,6 +1,6 @@
-function [STF_templates] = stf_templates(config)
+function [STF_templates] = stf_templates(tx_config)
 
-    assert(isa(config, "dectnrp_tx.config_t"));
+    assert(isa(tx_config, "dectnrp_tx.tx_config_t"));
 
     %% We save STF template which are known at the receiver.
 
@@ -13,12 +13,12 @@ function [STF_templates] = stf_templates(config)
 
     %% create a copy of the TX configuration and put the copy into a specific mode
 
-    config_cpy = copy(config);
+    tx_config_duplicate = copy(tx_config);
 
-    config_cpy.PacketLengthType = 0;   % subslots
-    config_cpy.PacketLength = 4;       % for some tx modes (with N_eff_TX >= 4) we need at least 20 OFDM symbols
-    config_cpy.codebook_index = 0;     % no beamforming
-    config_cpy.verbosity = 0;
+    tx_config_duplicate.PacketLengthType = 0;   % subslots
+    tx_config_duplicate.PacketLength = 4;       % for some tx modes (with N_eff_TX >= 4) we need at least 20 OFDM symbols
+    tx_config_duplicate.codebook_index = 0;     % no beamforming
+    tx_config_duplicate.verbosity = 0;
 
     %% one STF for each new number of effective TX antennas
     for N_eff_TX_idx=1:1:4
@@ -27,20 +27,20 @@ function [STF_templates] = stf_templates(config)
         switch N_eff_TX_idx
             case 1
                 % mode with N_eff_TX = 1
-                config_cpy.tm_mode_0_to_11 = 0;
+                tx_config_duplicate.tm_mode_0_to_11 = 0;
             case 2
                 % mode with N_eff_TX = 2
-                config_cpy.tm_mode_0_to_11 = 2;
+                tx_config_duplicate.tm_mode_0_to_11 = 2;
             case 3
                 % mode with N_eff_TX = 4
-                config_cpy.tm_mode_0_to_11 = 6;
+                tx_config_duplicate.tm_mode_0_to_11 = 6;
             case 4
                 % mode with N_eff_TX = 8
-                config_cpy.tm_mode_0_to_11 = 11;
+                tx_config_duplicate.tm_mode_0_to_11 = 11;
         end
 
         % create transmitter
-        tx_local = dectnrp_tx.tx_t(config_cpy);
+        tx_local = dectnrp_tx.tx_t(tx_config_duplicate);
 
         % create a packet
         samples_for_antenna = tx_local.generate_random_packet();
@@ -48,7 +48,7 @@ function [STF_templates] = stf_templates(config)
         %% save in time domain (oversampling included)
 
         % with oversampling STF becomes longer
-        n_STF_samples_os = tx_local.derived.n_STF_samples * config_cpy.oversampling;
+        n_STF_samples_os = tx_local.derived.n_STF_samples * tx_config_duplicate.oversampling;
 
         % extract STF and save in cell
         STF_templates.time_domain(N_eff_TX_idx) = {samples_for_antenna(1:n_STF_samples_os, 1)};

@@ -1,4 +1,4 @@
-classdef config_t < matlab.mixin.Copyable
+classdef tx_config_t < matlab.mixin.Copyable
     
     properties
         % The following variables are the minimal set of variables that define the complete structure and size of a DECT NR+ packet.
@@ -18,7 +18,7 @@ classdef config_t < matlab.mixin.Copyable
     end
     
     methods
-        function obj = config_t()
+        function obj = tx_config_t()
             obj = obj.set_example_values();
         end
     end
