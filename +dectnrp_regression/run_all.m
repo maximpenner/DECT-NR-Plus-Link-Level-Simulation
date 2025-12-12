@@ -1,8 +1,5 @@
 function [] = run_all()
-    clear all;
-    close all;
-    rng('shuffle');
-    warning('on');
+    dectnrp_util.setup_script();
 
     % Tests typically taking < 1 min
     run_single("dectnrp_regression.channel.time_reproducibility");

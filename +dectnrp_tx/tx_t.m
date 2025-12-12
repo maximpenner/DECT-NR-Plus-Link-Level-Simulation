@@ -140,7 +140,6 @@ classdef tx_t < matlab.mixin.Copyable
 
             assert(numel(transmit_streams) == N_TS);
             assert(numel(antenna_streams_mapped) == N_TX);
-            assert(numel(antenna_streams_mapped) == N_TX);       
 
             %% save packet data
             obj.packet_data.plcf_bits = plcf_bits;

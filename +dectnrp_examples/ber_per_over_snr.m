@@ -5,10 +5,7 @@ function [] = ber_per_over_snr()
     % When this script is finished, the function ber_per_over_snr_plot.m can be used to plot the results.
     % Executing this script as is should take only a few seconds to minutes, depending of the system and multi-core capabilities (parfor).
     
-    clear all;
-    close all;
-    rng('shuffle');
-    warning('on');
+    dectnrp_util.setup_script();
     
     if exist('results', 'dir')
         dectnrp_util.clear_directory('results');

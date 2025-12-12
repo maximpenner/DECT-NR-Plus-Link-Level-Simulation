@@ -1,8 +1,5 @@
 function [] = beamforming()
-    clear all;
-    close all;
-    rng('shuffle');
-    warning('on');
+    dectnrp_util.setup_script();
 
     % create packet configuration with four TX antennas, single spatial and single transmit stream
     tx_config = dectnrp_tx.tx_config_t();

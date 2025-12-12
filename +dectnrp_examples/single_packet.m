@@ -1,10 +1,7 @@
 function [] = single_packet()
     % This script illustrates how to use this DECT-2020 New Radio link-level simulation environment.
 
-    clear all;
-    close all;
-    rng('shuffle');
-    warning('on');
+    dectnrp_util.setup_script();
 
     % The type tx_config_t contains the minimal set of variables that define the structure and size of a DECT NR+ packet.
     % It is initialized with sample values that can be overwritten.

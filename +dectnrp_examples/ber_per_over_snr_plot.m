@@ -1,8 +1,5 @@
 function [] = ber_per_over_snr_plot()
-    clear all;
-    close all;
-    rng('shuffle');
-    warning('on');
+    dectnrp_util.setup_script();
     
     load('results/var_all.mat');
     
