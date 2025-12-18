@@ -51,7 +51,7 @@ function [] = beamforming()
 
     % number of packets per beamforming matrix
     for n = 1:1:N_packets
-        sinr_improvement(n) = run_single_codebook_index(tx, channel, rx, codebook_index_vec);
+        sinr_improvement(n) = run_all_codebook_indexes(tx, channel, rx, codebook_index_vec);
     end
 
     % plot results
@@ -67,7 +67,7 @@ function [] = beamforming()
     xlabel("Packet Index");
 end
 
-function [sinr] = run_single_codebook_index(tx, channel, rx, codebook_index_vec)
+function [sinr] = run_all_codebook_indexes(tx, channel, rx, codebook_index_vec)
 
     sinr = zeros(numel(codebook_index_vec), 1);
 
