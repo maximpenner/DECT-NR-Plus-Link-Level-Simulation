@@ -26,18 +26,18 @@ function [] = ber_per_over_snr()
     n_packets_per_snr = 100;
     
     % result container for PCC
-    n_bits_PCC_sent = zeros(numel(mcs), numel(snr_db(1,:)));        % BER uncoded
-    n_bits_PCC_error = zeros(numel(mcs), numel(snr_db(1,:)));       % BER uncoded
-    n_packets_PCC_sent = zeros(numel(mcs), numel(snr_db(1,:)));     % PER
-    n_packets_PCC_error = zeros(numel(mcs), numel(snr_db(1,:)));    % PER
+    n_bits_PCC_sent = zeros(numel(mcs), numel(snr_db));     % BER uncoded
+    n_bits_PCC_error = zeros(numel(mcs), numel(snr_db));    % BER uncoded
+    n_packets_PCC_sent = zeros(numel(mcs), numel(snr_db));  % PER
+    n_packets_PCC_error = zeros(numel(mcs), numel(snr_db)); % PER
     
     % result container for PDC
-    n_bits_PDC_sent = zeros(numel(mcs), numel(snr_db(1,:)));        % BER uncoded
-    n_bits_PDC_error = zeros(numel(mcs), numel(snr_db(1,:)));       % BER uncoded
-    n_packets_PDC_sent = zeros(numel(mcs), numel(snr_db(1,:)));     % PER
-    n_packets_PDC_error = zeros(numel(mcs), numel(snr_db(1,:)));    % PER
+    n_bits_PDC_sent = zeros(numel(mcs), numel(snr_db));     % BER uncoded
+    n_bits_PDC_error = zeros(numel(mcs), numel(snr_db));    % BER uncoded
+    n_packets_PDC_sent = zeros(numel(mcs), numel(snr_db));  % PER
+    n_packets_PDC_error = zeros(numel(mcs), numel(snr_db)); % PER
     
-    % bits per symbol, transport block size
+    % bits per symbol and transport block size
     bps = zeros(numel(mcs), 1);
     tbs = zeros(numel(mcs), 1);
     
@@ -64,9 +64,13 @@ function [] = ber_per_over_snr()
         % create tx
         tx = dectnrp_tx.tx_t(tx_config);
     
-        % create rx
+        % configuration is initialized with exemplary values
         rx_config = dectnrp_rx.rx_config_t();
+
+        % overwrite exemplary values
         rx_config.N_RX = 1;
+
+        % create rx
         rx = dectnrp_rx.rx_t(tx, rx_config);
         
         % PCC
@@ -88,10 +92,10 @@ function [] = ber_per_over_snr()
             
             % duplicate handle objects, changes within parfor change neither tx nor rx
             tx_duplicate = copy(tx);
-            rx_duplate = copy(rx);
+            rx_duplicate = copy(rx);
     
             % run simulation over multiple packets
-            result = simulate_packets(tx_duplicate, rx_duplate, snr_db(i), n_packets_per_snr, harq_retransmissions);
+            result = simulate_packets(tx_duplicate, rx_duplicate, snr_db(i), n_packets_per_snr, harq_retransmissions);
             
             % each worker writes to local PCC result container
             n_bits_PCC_sent_row(1,i) = result.n_bits_PCC_sent;
@@ -124,7 +128,6 @@ function [] = ber_per_over_snr()
         tbs(cnt) = tx.tx_derived.N_TB_bits;
     end
     
-    % save all variables to file
     save('results/var_all.mat');
 end
 
