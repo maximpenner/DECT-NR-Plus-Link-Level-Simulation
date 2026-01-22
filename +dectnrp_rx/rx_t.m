@@ -194,9 +194,29 @@ classdef rx_t < matlab.mixin.Copyable
                     if ismember(mode_0_to_11, [1,5,10]) == true
                         x_PCC_rev = dectnrp_rx.equalization_detection.MISO_MIMO_alamouti_mrc(antenna_streams_mapped_rev, ch_estim, obj.rx_config.N_RX, N_eff_TX, physical_resource_mapping_PCC_cell);
                         x_PDC_rev = dectnrp_rx.equalization_detection.MISO_MIMO_alamouti_mrc(antenna_streams_mapped_rev, ch_estim, obj.rx_config.N_RX, N_eff_TX, physical_resource_mapping_PDC_cell);
-                    % MIMO modes with more than one spatial stream
+
                     else
-                        error("MIMO modes with N_SS>1 not implemented yet.");
+                        if ismember(mode_0_to_11, [2,4,6,9,11]) == true
+                            % MIMO modes with more than one spatial stream, measure
+                            % the capacity for MIMO feedback 
+                            % !!! valid result require W = I !!!
+                            noise_power = dectnrp_rx.channel_estimation.noise_estimation(antenna_streams_mapped_rev, ...
+                                                              physical_resource_mapping_DRS_cell, ...
+                                                              ch_estim, ...
+                                                              obj.rx_config.N_RX, ...
+                                                              N_eff_TX);
+
+                            [codebook_index_feedback,N_TS_feedback] = dectnrp_rx.equalization_detection.MIMO_feedback(antenna_streams_mapped_rev, ...
+                                                                  physical_resource_mapping_DRS_cell, ...
+                                                                  ch_estim, ...
+                                                                  obj.rx_config.N_RX, ...
+                                                                  N_eff_TX, ...
+                                                                  noise_power);
+                            obj.rx_derived.mimo.codebook_index = codebook_index_feedback;
+                            obj.rx_derived.mimo.N_TS = N_TS_feedback;
+                        end
+                        x_PCC_rev = dectnrp_rx.equalization_detection.MISO_MIMO_alamouti_mrc(antenna_streams_mapped_rev, ch_estim, obj.rx_config.N_RX, N_eff_TX, physical_resource_mapping_PCC_cell);
+                        x_PDC_rev = dectnrp_rx.equalization_detection.MIMO_cl_ol_zf(antenna_streams_mapped_rev, ch_estim, obj.rx_config.N_RX, N_eff_TX, physical_resource_mapping_PDC_cell, N_SS);
                     end
                 end
                 
