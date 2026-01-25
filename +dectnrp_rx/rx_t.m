@@ -1,0 +1,386 @@
+classdef rx_t < matlab.mixin.Copyable
+    
+    properties
+        tx_config;
+        tx_derived;
+
+        rx_config
+
+        % The following structure contains variables that are derived from the above set of variables in rx_config.
+        % Like the variables in rx_config, they are not part of the technical specification.
+        rx_derived;
+
+        % intermediate results during packet decoding
+        packet_data;
+
+        HARQ_buf_40;    % PCC 40 bits
+        HARQ_buf_80;    % PCC 80 bits
+        HARQ_buf;       % PDC
+    end
+    
+    methods
+        function obj = rx_t(tx, rx_config)
+            assert(isa(tx, "dectnrp_tx.tx_t"));
+            assert(isa(rx_config, "dectnrp_rx.rx_config_t"));
+
+            obj.tx_config = tx.tx_config;
+            obj.tx_derived = tx.tx_derived;
+
+            obj.rx_config = rx_config;
+            obj.set_derived_weights(obj.rx_config.channel_estimation_config.noise_estim, ...
+                                    obj.rx_config.channel_estimation_config.f_d_hertz, ...
+                                    obj.rx_config.channel_estimation_config.tau_rms_sec);
+
+            obj.packet_data = [];
+
+            obj.clear_harq_buffers();
+        end
+
+        function [] = clear_harq_buffers(obj)
+            obj.HARQ_buf_40 = [];
+            obj.HARQ_buf_80 = [];
+            obj.HARQ_buf = [];
+        end
+
+        % Update channel estimation weights. In a real receiver, a sets of conceivable channel estimation weights would be precalculated.
+        % An example can be found in https://github.com/maximpenner/DECT-NR-Plus-SDR.
+        % However, this is not feasible here as it would take too long. Instead, weights have to updated when either the packet configuration
+        % or the channel conditions change.
+        function [] = set_derived_weights(obj, noise_estim, f_d_hertz, tau_rms_sec)
+            % The channel estimation filter interpolates between DRS pilots.
+            % In this repository, we use precalculated static filters.
+            % When calculating a static Wiener filter, the largest conceivable delay and Doppler spreads are assumed.
+            % For noise, multiple filters are calculated for different SNRs and chosen depending on the instantaneous measured SNR.
+            obj.rx_derived.weights = dectnrp_rx.channel_estimation.weights(obj.tx_derived.numerology.N_b_DFT, ...
+                                                                           obj.tx_derived.N_PACKET_symb, ...
+                                                                           obj.tx_derived.numerology.N_b_CP, ...
+                                                                           obj.rx_config.channel_estimation_config.type, ...
+                                                                           obj.rx_config.channel_estimation_config.N_closest_DRS_pilots, ...
+                                                                           obj.tx_derived.physical_resource_mapping_DRS_cell, ...
+                                                                           obj.tx_derived.numerology.B_u_b_DFT, ...
+                                                                           noise_estim, ...
+                                                                           f_d_hertz, ...
+                                                                           tau_rms_sec);
+        end
+        
+        % We pass on the samples as they are received at the antennas and we try to extract the PCC and PDC bits.
+        % It gets more complicated when using HARQ as calls to this function depend on each other.
+        function [plcf_bits_recovered, tb_bits_recovered] = demod_decode_packet(obj, samples_antenna_rx)
+            
+            %% for the purpose of readability, extract all variables that are necessary at this stage
+
+            u               = obj.tx_config.u;
+            b               = obj.tx_config.b;
+            Z               = obj.tx_config.Z;
+            network_id      = obj.tx_config.network_id;
+            PLCF_type       = obj.tx_config.PLCF_type;
+            rv              = obj.tx_config.rv;
+            oversampling    = obj.tx_config.oversampling;
+            verbosity       = obj.tx_config.verbosity;
+        
+            mode_0_to_11    = obj.tx_derived.tm_mode.mode_0_to_11;
+            N_SS            = obj.tx_derived.tm_mode.N_SS;
+            N_eff_TX        = obj.tx_derived.tm_mode.N_eff_TX;
+
+            mcs             = obj.tx_derived.mcs;
+
+            N_b_DFT         = obj.tx_derived.numerology.N_b_DFT;            
+            N_b_CP          = obj.tx_derived.numerology.N_b_CP;
+
+            N_TB_bits       = obj.tx_derived.N_TB_bits;
+            N_PACKET_symb   = obj.tx_derived.N_PACKET_symb;
+            k_b_OCC         = obj.tx_derived.k_b_OCC;
+
+            physical_resource_mapping_PCC_cell = obj.tx_derived.physical_resource_mapping_PCC_cell;
+            physical_resource_mapping_PDC_cell = obj.tx_derived.physical_resource_mapping_PDC_cell;
+            physical_resource_mapping_STF_cell = obj.tx_derived.physical_resource_mapping_STF_cell;
+            physical_resource_mapping_DRS_cell = obj.tx_derived.physical_resource_mapping_DRS_cell;
+
+            HARQ_buf_40_    = obj.HARQ_buf_40;
+            HARQ_buf_80_    = obj.HARQ_buf_80;
+            HARQ_buf_       = obj.HARQ_buf;
+            weights_        = obj.rx_derived.weights;
+
+            assert(size(samples_antenna_rx, 1) == obj.tx_derived.n_packet_samples*oversampling, "incorrect number of input samples");
+
+            %% revert cover sequence by reapplying it
+            samples_antenna_rx = dectnrp_6_generic_procedures.STF_signal_cover_sequence(samples_antenna_rx, ...
+                                                                                        u, ...
+                                                                                        b*oversampling);
+
+            %% OFDM demodulation a.k.a FFT
+            % Switch back to frequency domain.
+            % We use one version with subcarriers from oversampling removed and one with them still occupied.
+            % The second version might be necessary if we have a very large, uncorrected integer CFO.
+            [antenna_streams_mapped_rev, ~]= dectnrp_6_generic_procedures.ofdm_signal_generation_Cyclic_prefix_insertion_rev(samples_antenna_rx, ...
+                                                                                                                             k_b_OCC, ...
+                                                                                                                             N_PACKET_symb, ...
+                                                                                                                             obj.rx_config.N_RX, ...
+                                                                                                                             N_eff_TX, ...
+                                                                                                                             N_b_DFT, ...
+                                                                                                                             u, ...
+                                                                                                                             N_b_CP, ...
+                                                                                                                             oversampling);
+
+            %% remove fractional + residual STO based on STF and DRS
+            % Idea: A delay in time domain leads to increasing phase rotation within an OFDM symbol, but steady across the packet.
+            % This is known as the phase error gradient (PEG).
+            % A residual STO may also be due to a Symbol Clock Offset (SCO).
+            % ToDo: residual STO based on STF plus DRS
+            if ~isempty(obj.rx_config.sto_fractional_config)
+                [antenna_streams_mapped_rev, sto_fractional] = dectnrp_rx.sto_fractional(antenna_streams_mapped_rev, ...
+                                                                                         physical_resource_mapping_STF_cell, ...
+                                                                                         obj.rx_config.N_RX, ...
+                                                                                         oversampling);
+
+                % add to report
+                obj.packet_data.residual_report.sto_fractional = sto_fractional;
+            else
+                % add empty
+                obj.packet_data.residual_report.sto_fractional = 0;
+            end
+
+            %% remove residual CFO correction based on STF and DRS
+            % Idea: A CFO leads to steady phase rotation within an OFDM symbol, but increasing phase rotation across the packet.
+            % This is known as the common phase error (CPE).
+            % Is a real receiver, a CFO can also be caused by phase noise.
+            % ToDo: residual CFO based on STF plus DRS
+            if ~isempty(obj.rx_config.cfo_residual_config)
+                antenna_streams_mapped_rev = dectnrp_rx.cfo_residual(antenna_streams_mapped_rev, ...
+                                                                     physical_resource_mapping_DRS_cell, ...
+                                                                     physical_resource_mapping_STF_cell, ...
+                                                                     obj.rx_config.N_RX, ...
+                                                                     N_eff_TX);
+            end
+
+            %% PCC decoding and packet data extraction
+            % Decode PCC and extract all relevant data about the packet.
+            % We know N_eff_TX from STO sync, so we also know the DRS pattern.
+            % With STF and DRS known, we can now estimate the channel for PCC, which lies at the beginning of each packet.
+            % PCC is always transmitted with transmit diversity coding.
+            % For now it is done down below together with the PDC.
+                                                                                                                    
+            %% channel estimation
+            % Now that we know the length of the packet from the PCC, we can determine a channel estimate.
+            % Output is a cell(N_RX,1), each cell with a matrix of size N_b_DFT x N_PACKET_symb x N_TS.
+            % For subcarriers which are unused the channel estimate can be NaN or +/- infinity.
+            ch_estim = dectnrp_rx.channel_estimation.estimate(antenna_streams_mapped_rev, ...
+                                                              physical_resource_mapping_DRS_cell, ...
+                                                              weights_, ...
+                                                              obj.rx_config.N_RX, ...
+                                                              N_eff_TX);
+            
+            %% equalization and detection
+            % With the known transmission mode and the channel estimate, we can now extract the binary data from the packet.
+            % Equalization here is understood as the inversion of channel effects at the subcarriers, usually paired with a symbol demapper.
+            % For MIMO detection with N_SS > 1 and symbol detection, equalization is not performed explicitly but is implicit part of the underlying algorithm.
+            if ~isempty(obj.rx_config.equalization_detection_config)
+                
+                % SISO
+                if N_eff_TX == 1 && obj.rx_config.N_RX ==1
+
+                    x_PCC_rev = dectnrp_rx.equalization_detection.SISO_zf(antenna_streams_mapped_rev, ch_estim, physical_resource_mapping_PCC_cell);
+                    x_PDC_rev = dectnrp_rx.equalization_detection.SISO_zf(antenna_streams_mapped_rev, ch_estim, physical_resource_mapping_PDC_cell);
+
+                % SIMO (Maximum Ratio Combining (MRC))
+                elseif N_eff_TX == 1 && obj.rx_config.N_RX > 1
+
+                    x_PCC_rev = dectnrp_rx.equalization_detection.SIMO_mrc(antenna_streams_mapped_rev, ch_estim, physical_resource_mapping_PCC_cell, obj.rx_config.N_RX);
+                    x_PDC_rev = dectnrp_rx.equalization_detection.SIMO_mrc(antenna_streams_mapped_rev, ch_estim, physical_resource_mapping_PDC_cell, obj.rx_config.N_RX);
+
+                % MISO (Alamouti) and MIMO (Alamouti + MRC and other modes)
+                else
+                    % Transmit diversity precoding
+                    if ismember(mode_0_to_11, [1,5,10]) == true
+                        x_PCC_rev = dectnrp_rx.equalization_detection.MISO_MIMO_alamouti_mrc(antenna_streams_mapped_rev, ch_estim, obj.rx_config.N_RX, N_eff_TX, physical_resource_mapping_PCC_cell);
+                        x_PDC_rev = dectnrp_rx.equalization_detection.MISO_MIMO_alamouti_mrc(antenna_streams_mapped_rev, ch_estim, obj.rx_config.N_RX, N_eff_TX, physical_resource_mapping_PDC_cell);
+
+                    else
+                        if ismember(mode_0_to_11, [2,4,6,9,11]) == true
+                            % MIMO modes with more than one spatial stream, measure
+                            % the capacity for MIMO feedback 
+                            % !!! valid result require W = I !!!
+                            noise_power = dectnrp_rx.channel_estimation.noise_estimation(antenna_streams_mapped_rev, ...
+                                                              physical_resource_mapping_DRS_cell, ...
+                                                              ch_estim, ...
+                                                              obj.rx_config.N_RX, ...
+                                                              N_eff_TX);
+
+                            [codebook_index_feedback,N_TS_feedback] = dectnrp_rx.equalization_detection.MIMO_feedback(antenna_streams_mapped_rev, ...
+                                                                  physical_resource_mapping_DRS_cell, ...
+                                                                  ch_estim, ...
+                                                                  obj.rx_config.N_RX, ...
+                                                                  N_eff_TX, ...
+                                                                  noise_power);
+                            obj.rx_derived.mimo.codebook_index = codebook_index_feedback;
+                            obj.rx_derived.mimo.N_TS = N_TS_feedback;
+                        end
+                        x_PCC_rev = dectnrp_rx.equalization_detection.MISO_MIMO_alamouti_mrc(antenna_streams_mapped_rev, ch_estim, obj.rx_config.N_RX, N_eff_TX, physical_resource_mapping_PCC_cell);
+                        x_PDC_rev = dectnrp_rx.equalization_detection.MIMO_cl_ol_zf(antenna_streams_mapped_rev, ch_estim, obj.rx_config.N_RX, N_eff_TX, physical_resource_mapping_PDC_cell, N_SS);
+                    end
+                end
+                
+            % no equalization, a great debugging tool when using AWGN channel
+            else
+                x_PCC_rev = dectnrp_7_transmission_encoding.subcarrier_demapping_PCC(antenna_streams_mapped_rev, physical_resource_mapping_PCC_cell);
+                x_PDC_rev = dectnrp_7_transmission_encoding.subcarrier_demapping_PDC(antenna_streams_mapped_rev, physical_resource_mapping_PDC_cell);                
+            end
+
+            %% PCC and PDC decoding
+            [plcf_bits_recovered, ...
+             PCC_HARQ_buf_40_report, ...
+             PCC_HARQ_buf_80_report, ...
+             CL_report, ...
+             BF_report, ...
+             pcc_dec_dbg] =  dectnrp_7_transmission_encoding.PCC_decoding(x_PCC_rev, ...
+                                                                          obj.tx_config.PLCF_type, ...
+                                                                          HARQ_buf_40_, ...
+                                                                          HARQ_buf_80_);
+            [tb_bits_recovered, PDC_HARQ_buf_report, pdc_dec_dbg] = dectnrp_7_transmission_encoding.PDC_decoding(x_PDC_rev, ...
+                                                                                                                 N_TB_bits, ...
+                                                                                                                 Z, ...
+                                                                                                                 network_id, ...
+                                                                                                                 PLCF_type, ...
+                                                                                                                 rv, ...
+                                                                                                                 mcs, ...
+                                                                                                                 N_SS, ...
+                                                                                                                 HARQ_buf_);
+
+            %% save HARQ buffers for next call
+            if numel(PCC_HARQ_buf_40_report) > 0
+                obj.HARQ_buf_40 = PCC_HARQ_buf_40_report;
+            end
+            if numel(PCC_HARQ_buf_80_report) > 0
+                obj.HARQ_buf_80 = PCC_HARQ_buf_80_report;
+            end            
+            if numel(PDC_HARQ_buf_report) > 0
+                obj.HARQ_buf = PDC_HARQ_buf_report;
+            end
+
+            %% save packet data
+            obj.packet_data.samples_antenna_rx = samples_antenna_rx;
+            obj.packet_data.ch_estim = ch_estim;
+            obj.packet_data.x_PCC_rev = x_PCC_rev;
+            obj.packet_data.x_PDC_rev = x_PDC_rev;
+            obj.packet_data.plcf_bits_recovered = plcf_bits_recovered;
+            obj.packet_data.CL_report = CL_report;
+            obj.packet_data.BF_report = BF_report;
+            obj.packet_data.pcc_dec_dbg = pcc_dec_dbg;
+            obj.packet_data.tb_bits_recovered = tb_bits_recovered;
+            obj.packet_data.pdc_dec_dbg = pdc_dec_dbg;
+
+            if verbosity >= 1
+                obj.plot_channel_estimation();
+                obj.plot_scatter();
+            end
+        end
+
+        % The following methods must only be called after a packet was generated by TX and processed by RX.
+
+        function n = get_pcc_bit_errors_uncoded(obj, tx)
+            n = sum(abs(double(tx.packet_data.pcc_enc_dbg.d) - double(obj.packet_data.pcc_dec_dbg.d_hard)));
+        end
+
+        function n = get_pdc_bit_errors_uncoded(obj, tx)
+            n = sum(abs(double(tx.packet_data.pdc_enc_dbg.d) - double(obj.packet_data.pdc_dec_dbg.d_hard)));
+        end
+
+        function ret = are_plcf_bits_equal(obj, tx)
+            % in case decoding failed, i.e. incorrect CRC
+            if numel(obj.packet_data.plcf_bits_recovered) == 0
+                ret = false;
+                return;
+            end
+
+            % decoding was successful, i.e. CRC is correct, however, the data can still be incorrect
+            if sum(tx.packet_data.plcf_bits - double(obj.packet_data.plcf_bits_recovered)) == 0
+                ret = true;
+            else
+                ret = false;
+            end
+        end
+
+        function ret = are_tb_bits_equal(obj, tx)
+            % in case decoding failed, i.e. incorrect CRC
+            if numel(obj.packet_data.tb_bits_recovered) == 0
+                ret = false;
+                return;
+            end
+
+            % decoding was successful, i.e. CRC is correct, however, the data can still be incorrect
+            if sum(tx.packet_data.tb_bits - double(obj.packet_data.tb_bits_recovered)) == 0
+                ret = true;
+            else
+                ret = false;
+            end
+        end
+
+        function sinr = get_sinr(obj, tx)
+            tx_power_measurement = tx.packet_data.x_PDC;
+            tx_power_measurement = sum(abs(tx_power_measurement).^2)/numel(tx_power_measurement);
+
+            if numel(obj.packet_data.x_PDC_rev) == 0
+                sinr = NaN;
+                return;
+            end
+
+            noise_power_measurement = obj.packet_data.x_PDC_rev - tx.packet_data.x_PDC;
+            noise_power_measurement = sum(abs(noise_power_measurement).^2)/numel(noise_power_measurement);
+
+            sinr = 10*log10(tx_power_measurement/noise_power_measurement);
+        end
+
+        function [] = plot_channel_estimation(obj)
+            assert(obj.rx_config.N_RX == numel(obj.packet_data.ch_estim));
+        
+            % extract dimensions
+            [N_subc, N_symb, N_TS] =  size(obj.packet_data.ch_estim{1});
+        
+            figure()
+            clf()
+
+            for i=1:obj.rx_config.N_RX
+        
+                % channel estimation of one antenna
+                ch_estim_single = obj.packet_data.ch_estim{i};
+        
+                for j=1:N_TS
+                
+                    % channel estimation of one transmit stream
+                    ch_estim_single_TS = ch_estim_single(:,:,j);
+        
+                    subplot(obj.rx_config.N_RX, N_TS, (i-1)*N_TS + j);
+                    hold on;
+        
+                    % fill subplot
+                    for k=1:N_symb
+        
+                        % channel estimation for one OFDM symbol
+                        ch_estim_single_TS_symb = ch_estim_single_TS(:, k);
+        
+                        % zero guards for nice plots
+                        ch_estim_single_TS_symb(1:obj.tx_derived.numerology.n_guards_bottom) = 0;
+                        ch_estim_single_TS_symb(end-obj.tx_derived.numerology.n_guards_top+1:end) = 0;
+        
+                        plot(-N_subc/2 : 1 : (N_subc/2-1), mag2db(abs(ch_estim_single_TS_symb)));
+                    end
+        
+                    title_str = "RX Ch Estim: Ant " + num2str(i-1) + " TS " + num2str(j-1) + " for " + num2str(N_symb) + " Symbols";
+                    title(title_str);
+                    grid on
+                    grid minor
+                    xlim([-N_subc/2 N_subc/2])
+                    ylim([-30 10])
+                    xlabel("Subcarrier Index")
+                    ylabel("Absolute dB")
+                end
+            end
+        end
+
+        function [] = plot_scatter(obj)
+            h = scatterplot(obj.packet_data.x_PDC_rev);
+            title("RX Scatterplot");
+            set(h, 'WindowStyle', 'Docked');
+        end
+    end
+end
