@@ -140,6 +140,21 @@ classdef rx_t < matlab.mixin.Copyable
                 obj.packet_data.residual_report.sto_fractional = 0;
             end
 
+            if ~isempty(obj.rx_config.sto_residual_config)
+                [antenna_streams_mapped_rev, sto_residual] = dectnrp_rx.sto_residual(antenna_streams_mapped_rev, ...
+                                                                                        physical_resource_mapping_DRS_cell, ...
+                                                                                         physical_resource_mapping_STF_cell, ...
+                                                                                         obj.rx_config.N_RX, ...
+                                                                                         N_eff_TX, ...
+                                                                                         oversampling);
+
+                % add to report
+                obj.packet_data.residual_report.sto_residual = sto_residual;
+            else
+                % add empty
+                obj.packet_data.residual_report.sto_residual = 0;
+            end
+
             %% remove residual CFO correction based on STF and DRS
             % Idea: A CFO leads to steady phase rotation within an OFDM symbol, but increasing phase rotation across the packet.
             % This is known as the common phase error (CPE).
