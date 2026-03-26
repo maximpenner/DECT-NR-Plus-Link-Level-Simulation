@@ -7,7 +7,7 @@ function [antenna_streams_mapped_rev_derot, sto_residual] = sto_residual(antenna
 
     % after FFT a remaining STO appears as a phase slope across
     % the subcarriers, this rotation can be estimated by neighboring pilots
-    % were H_k1 * H_k2 ≈ |H_k1|^2
+    % where H_k1 * H_k2 ≈ |H_k1|^2
     % The equation is from https://ieeexplore.ieee.org/document/4017715
 
         % we need the dimensions of the packet
