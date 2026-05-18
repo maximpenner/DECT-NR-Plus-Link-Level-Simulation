@@ -4,10 +4,9 @@ function [antenna_streams_mapped_rev_derot, sto_residual] = sto_residual(antenna
                                                                          N_RX, ...
                                                                          N_eff_TX, ...
                                                                          oversampling)
-    % after FFT a remaining STO appears as a phase slope across
-    % the subcarriers, this rotation can be estimated by neighboring pilots
-    % where H_k1 * H_k2 ≈ |H_k1|^2
-    % The equation is from https://ieeexplore.ieee.org/document/4017715
+    % After FFT a remaining STO appears as a phase slope across the subcarriers,
+    % this rotation can be estimated by neighboring pilots where H_k1 * H_k2 ≈ |H_k1|^2.
+    % The equation is from https://ieeexplore.ieee.org/document/4017715.
 
     % we need the dimensions of the packet
     [N_b_DFT, N_PACKET_symb] = size(cell2mat(antenna_streams_mapped_rev(1)));
@@ -15,9 +14,8 @@ function [antenna_streams_mapped_rev_derot, sto_residual] = sto_residual(antenna
     %% STF preparation (optional/ already done in sto_fractional)
 
     % The STF could also be used for this algorithm, since it is scheduled
-    % in a similar manor (every forth subcarrier) as the pilots, 
-    % however sto correction based on
-    % the STF after FFT is already done in sto_fractional
+    % in a similar manor (every forth subcarrier) as the pilots, however,
+    % sto correction based on the STF after FFT is already done in sto_fractional.
 
     % For each RX antenna, the same STF is received.
     % Get the STF indices and the sent STF complex values.
@@ -54,7 +52,6 @@ function [antenna_streams_mapped_rev_derot, sto_residual] = sto_residual(antenna
 
         a = a + sum((y_STF(s).* conj(STF_values(s))).*conj(y_STF(s+1).* conj(STF_values(s+1)))); 
 
-
         for j=1:1:N_eff_TX
 
             %% extract sent and received DRS values
@@ -68,7 +65,7 @@ function [antenna_streams_mapped_rev_derot, sto_residual] = sto_residual(antenna
             % received drs
             y_DRS = transmit_streams_rev_i(DRS_linear_indices_matlab);
 
-           % In Eq. (19), accumulate (k1) * conj(k2) with dk = k2 - k1.
+            % In Eq. (19), accumulate (k1) * conj(k2) with dk = k2 - k1.
             for l=1:size(y_DRS,2)
                 for s = 1:2:numel(DRS_values)
                     a = a + (y_DRS(s,l) * conj(DRS_values(s))) * conj(y_DRS(s+1,l) * conj(DRS_values(s+1)));
