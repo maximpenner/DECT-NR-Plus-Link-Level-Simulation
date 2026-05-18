@@ -108,7 +108,7 @@ classdef rx_t < matlab.mixin.Copyable
                                                                                         u, ...
                                                                                         b*oversampling);
 
-            %% OFDM demodulation a.k.a FFT
+            %% OFDM demodulation a.k.a. FFT
             % Switch back to frequency domain.
             % We use one version with subcarriers from oversampling removed and one with them still occupied.
             % The second version might be necessary if we have a very large, uncorrected integer CFO.
@@ -126,18 +126,31 @@ classdef rx_t < matlab.mixin.Copyable
             % Idea: A delay in time domain leads to increasing phase rotation within an OFDM symbol, but steady across the packet.
             % This is known as the phase error gradient (PEG).
             % A residual STO may also be due to a Symbol Clock Offset (SCO).
-            % ToDo: residual STO based on STF plus DRS
-            if ~isempty(obj.rx_config.sto_fractional_config)
-                [antenna_streams_mapped_rev, sto_fractional] = dectnrp_rx.sto_fractional(antenna_streams_mapped_rev, ...
-                                                                                         physical_resource_mapping_STF_cell, ...
-                                                                                         obj.rx_config.N_RX, ...
-                                                                                         oversampling);
 
-                % add to report
+            % fractional STO based on STF
+            if ~isempty(obj.rx_config.sto_fractional_config)
+                [antenna_streams_mapped_rev, sto_fractional] = dectnrp_rx.offset.sto_fractional(antenna_streams_mapped_rev, ...
+                                                                                                physical_resource_mapping_STF_cell, ...
+                                                                                                obj.rx_config.N_RX, ...
+                                                                                                oversampling);
+
                 obj.packet_data.residual_report.sto_fractional = sto_fractional;
             else
-                % add empty
                 obj.packet_data.residual_report.sto_fractional = 0;
+            end
+
+            % residual STO based in DRS
+            if ~isempty(obj.rx_config.sto_residual_config)
+                [antenna_streams_mapped_rev, sto_residual] = dectnrp_rx.offset.sto_residual(antenna_streams_mapped_rev, ...
+                                                                                            physical_resource_mapping_DRS_cell, ...
+                                                                                            physical_resource_mapping_STF_cell, ...
+                                                                                            obj.rx_config.N_RX, ...
+                                                                                            N_eff_TX, ...
+                                                                                            oversampling);
+
+                obj.packet_data.residual_report.sto_residual = sto_residual;
+            else
+                obj.packet_data.residual_report.sto_residual = 0;
             end
 
             %% remove residual CFO correction based on STF and DRS
@@ -146,11 +159,11 @@ classdef rx_t < matlab.mixin.Copyable
             % Is a real receiver, a CFO can also be caused by phase noise.
             % ToDo: residual CFO based on STF plus DRS
             if ~isempty(obj.rx_config.cfo_residual_config)
-                antenna_streams_mapped_rev = dectnrp_rx.cfo_residual(antenna_streams_mapped_rev, ...
-                                                                     physical_resource_mapping_DRS_cell, ...
-                                                                     physical_resource_mapping_STF_cell, ...
-                                                                     obj.rx_config.N_RX, ...
-                                                                     N_eff_TX);
+                antenna_streams_mapped_rev = dectnrp_rx.offset.cfo_residual(antenna_streams_mapped_rev, ...
+                                                                            physical_resource_mapping_DRS_cell, ...
+                                                                            physical_resource_mapping_STF_cell, ...
+                                                                            obj.rx_config.N_RX, ...
+                                                                            N_eff_TX);
             end
 
             %% PCC decoding and packet data extraction
@@ -194,9 +207,28 @@ classdef rx_t < matlab.mixin.Copyable
                     if ismember(mode_0_to_11, [1,5,10]) == true
                         x_PCC_rev = dectnrp_rx.equalization_detection.MISO_MIMO_alamouti_mrc(antenna_streams_mapped_rev, ch_estim, obj.rx_config.N_RX, N_eff_TX, physical_resource_mapping_PCC_cell);
                         x_PDC_rev = dectnrp_rx.equalization_detection.MISO_MIMO_alamouti_mrc(antenna_streams_mapped_rev, ch_estim, obj.rx_config.N_RX, N_eff_TX, physical_resource_mapping_PDC_cell);
-                    % MIMO modes with more than one spatial stream
+
                     else
-                        error("MIMO modes with N_SS>1 not implemented yet.");
+                        if ismember(mode_0_to_11, [2,4,6,9,11]) == true
+                            % MIMO modes with more than one spatial stream, measure the capacity for MIMO feedback.
+                            noise_power = dectnrp_rx.channel_estimation.noise_estimation(antenna_streams_mapped_rev, ...
+                                                                                         physical_resource_mapping_DRS_cell, ...
+                                                                                         ch_estim, ...
+                                                                                         obj.rx_config.N_RX, ...
+                                                                                         N_eff_TX);
+
+                            [codebook_index_feedback, N_TS_feedback] = dectnrp_rx.equalization_detection.MIMO_feedback(antenna_streams_mapped_rev, ...
+                                                                                                                       physical_resource_mapping_DRS_cell, ...
+                                                                                                                       ch_estim, ...
+                                                                                                                       obj.rx_config.N_RX, ...
+                                                                                                                       N_eff_TX, ...
+                                                                                                                       noise_power);
+
+                            obj.rx_derived.mimo.codebook_index = codebook_index_feedback;
+                            obj.rx_derived.mimo.N_TS = N_TS_feedback;
+                        end
+                        x_PCC_rev = dectnrp_rx.equalization_detection.MISO_MIMO_alamouti_mrc(antenna_streams_mapped_rev, ch_estim, obj.rx_config.N_RX, N_eff_TX, physical_resource_mapping_PCC_cell);
+                        x_PDC_rev = dectnrp_rx.equalization_detection.MIMO_cl_ol_zf(antenna_streams_mapped_rev, ch_estim, obj.rx_config.N_RX, N_eff_TX, physical_resource_mapping_PDC_cell, N_SS);
                     end
                 end
                 
