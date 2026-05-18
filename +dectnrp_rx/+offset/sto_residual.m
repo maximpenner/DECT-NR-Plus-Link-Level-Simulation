@@ -1,22 +1,21 @@
 function [antenna_streams_mapped_rev_derot, sto_residual] = sto_residual(antenna_streams_mapped_rev, ...
-                                                       physical_resource_mapping_DRS_cell, ...
-                                                       physical_resource_mapping_STF_cell, ...
-                                                       N_RX, ...
-                                                       N_eff_TX, ...
-                                                       oversampling)
-
+                                                                         physical_resource_mapping_DRS_cell, ...
+                                                                         physical_resource_mapping_STF_cell, ...
+                                                                         N_RX, ...
+                                                                         N_eff_TX, ...
+                                                                         oversampling)
     % after FFT a remaining STO appears as a phase slope across
     % the subcarriers, this rotation can be estimated by neighboring pilots
     % where H_k1 * H_k2 ≈ |H_k1|^2
     % The equation is from https://ieeexplore.ieee.org/document/4017715
 
-        % we need the dimensions of the packet
+    % we need the dimensions of the packet
     [N_b_DFT, N_PACKET_symb] = size(cell2mat(antenna_streams_mapped_rev(1)));
 
     %% STF preparation (optional/ already done in sto_fractional)
 
     % The STF could also be used for this algorithm, since it is scheduled
-    % in a similiar manor (every forth subcarrier) as the pilots, 
+    % in a similar manor (every forth subcarrier) as the pilots, 
     % however sto correction based on
     % the STF after FFT is already done in sto_fractional
 

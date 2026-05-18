@@ -5,7 +5,7 @@ classdef rx_config_t < matlab.mixin.Copyable
         N_RX;
 
         % processing after the FFT in frequency domain
-        sto_fractional_config;          % based on STF and optionally DRS
+        sto_fractional_config;          % based on STF
         sto_residual_config;            % based on DRS
         cfo_residual_config;            % based on DRS
         channel_estimation_config;      % based on optionally STF and DRS
