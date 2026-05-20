@@ -54,6 +54,7 @@ The Matlab Communications Toolbox is required for wireless channel simulation, t
     ├─ +dectnrp_rx/                               receiver
     │   ├─ +channel_estimation                    channel estimation based on STF and DRS
     │   ├─ +equalization_detection                symbol equalization/detection
+    │   ├─ +offset_estimation                     CFO, STO etc.
     ├─ +dectnrp_sync/                             pre-fft synchronization in time domain
     ├─ +dectnrp_tx/                               transmitter
     ├─ +dectnrp_util/                             utility
